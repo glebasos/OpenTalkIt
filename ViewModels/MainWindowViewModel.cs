@@ -10,11 +10,11 @@ public partial class MainWindowViewModel : ViewModelBase
     public ParameterControlViewModel ParameterVM { get; }
     public TalkControlViewModel TalkVM { get; }
 
-    public TiSpeechEngine Engine { get; } = new();
+    public TiSpeechClient Engine { get; } = new();
 
     public MainWindowViewModel()
     {
-        Engine.Open("E:\\Projects\\dotnet\\OpenTalkIt\\OpenTalkIt\\DLLs", TiLanguageFlags.English | TiLanguageFlags.Spanish);
+        Engine.Open(TiLanguageFlags.English | TiLanguageFlags.Spanish);
 
         PersonalityVM = new PersonalityControlViewModel();
         ParameterVM   = new ParameterControlViewModel();

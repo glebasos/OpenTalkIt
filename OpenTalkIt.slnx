@@ -1,4 +1,6 @@
 <Solution>
+  <Project Path="../../TiSpeech.Client/TiSpeech.Client.csproj" />
+  <Project Path="../../TiSpeech.Host/TiSpeech.Host.csproj" />
   <Project Path="../../TiSpeech/TiSpeech.csproj" />
   <Project Path="OpenTalkIt.csproj" />
 </Solution>

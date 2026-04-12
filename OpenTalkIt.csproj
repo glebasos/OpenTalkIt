@@ -1,8 +1,7 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
         <TargetFramework>net10.0-windows</TargetFramework>
-        <PlatformTarget>x86</PlatformTarget>
         <Nullable>enable</Nullable>
         <ApplicationManifest>app.manifest</ApplicationManifest>
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
@@ -25,6 +24,22 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\TiSpeech\TiSpeech.csproj" />
+        <ProjectReference Include="..\..\TiSpeech.Client\TiSpeech.Client.csproj" />
     </ItemGroup>
+
+    <!-- Build TiSpeech.Host (x86) and copy its output to x86\ next to this exe.
+         The native DLLs (TIBASE32.DLL etc.) also belong in that x86\ folder. -->
+    <Target Name="CopyTiSpeechHost" AfterTargets="Build">
+        <MSBuild Projects="..\..\TiSpeech.Host\TiSpeech.Host.csproj"
+                 Properties="Configuration=$(Configuration)"
+                 Targets="Build"
+                 BuildInParallel="false" />
+        <ItemGroup>
+            <_HostFiles Include="..\..\TiSpeech.Host\bin\$(Configuration)\net10.0-windows\**\*.*" />
+        </ItemGroup>
+        <Copy SourceFiles="@(_HostFiles)"
+              DestinationFolder="$(OutDir)x86\%(RecursiveDir)"
+              SkipUnchangedFiles="true" />
+    </Target>
+
 </Project>

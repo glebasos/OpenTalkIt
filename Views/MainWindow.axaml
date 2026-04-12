@@ -16,13 +16,15 @@
         <vm:MainWindowViewModel />
     </Design.DataContext>
 
-    <StackPanel>
-        <!-- <TextBlock Text="{Binding Greeting}" HorizontalAlignment="Center" VerticalAlignment="Center" /> -->
-        <controls:PersonalityControl DataContext="{Binding PersonalityVM}"/>
-        <controls:ParameterControl   DataContext="{Binding ParameterVM}"/>
-        <controls:TalkControl        DataContext="{Binding TalkVM}"/>
-
-    </StackPanel>
+    <Grid>
+        <controls:CloudShaderControl/>
+        <StackPanel>
+            <!-- <TextBlock Text="{Binding Greeting}" HorizontalAlignment="Center" VerticalAlignment="Center" /> -->
+            <controls:PersonalityControl DataContext="{Binding PersonalityVM}"/>
+            <controls:ParameterControl   DataContext="{Binding ParameterVM}"/>
+            <controls:TalkControl        DataContext="{Binding TalkVM}"/>
+        </StackPanel>
+    </Grid>
 
 
 </Window>

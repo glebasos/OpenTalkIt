@@ -9,10 +9,10 @@ namespace OpenTalkIt.ViewModels;
 
 public partial class TalkControlViewModel : ViewModelBase
 {
-    private readonly TiSpeechEngine _engine;
+    private readonly TiSpeechClient _engine;
     private readonly Func<TalkParameters> _getParameters;
 
-    public TalkControlViewModel(TiSpeechEngine engine, Func<TalkParameters> getParameters)
+    public TalkControlViewModel(TiSpeechClient engine, Func<TalkParameters> getParameters)
     {
         _engine = engine;
         _getParameters = getParameters;
@@ -20,39 +20,46 @@ public partial class TalkControlViewModel : ViewModelBase
     
     [ObservableProperty] private string _text = string.Empty;
     [ObservableProperty] private bool _isSpeaking;
-    
+
+    // Completed by SpeakCompleted event or by Stop() so TalkAsync never leaks.
+    private TaskCompletionSource? _speakTcs;
+
     [RelayCommand(CanExecute = nameof(CanTalk))]
     private async Task TalkAsync()
     {
-        IsSpeaking = true;                                                                                                                                                                                                                                                                                            
+        IsSpeaking = true;
         var p = _getParameters();
 
-        _engine.SetPersonality(p.Personality?.Personality ?? TiPersonality.Male); 
+        _engine.SetPersonality(p.Personality?.Personality ?? TiPersonality.Male);
         _engine.SetPitch(p.Pitch);
         _engine.SetRate(p.Speed);
         _engine.SetLanguage(p.Language);
         _engine.SetVoicingMode(p.VocalEffort);
         _engine.SetF0Style(p.PitchQuality);
 
-        var tcs = new TaskCompletionSource();
+        _speakTcs = new TaskCompletionSource();
         _engine.SpeakCompleted += OnCompleted;
         _engine.Speak(Text);
 
-        await tcs.Task;
+        await _speakTcs.Task;
+
+        // Always runs on the UI thread — safe to update observable properties here.
+        IsSpeaking = false;
 
         void OnCompleted(object? s, EventArgs e)
         {
             _engine.SpeakCompleted -= OnCompleted;
-            tcs.SetResult();
-            IsSpeaking = false;
+            _speakTcs?.TrySetResult();
         }
-
     }
 
     [RelayCommand(CanExecute = nameof(CanStop))]
     private void Stop()
     {
         _engine.Stop();
+        // Complete the pending TCS so TalkAsync can resume and clean up.
+        _speakTcs?.TrySetResult();
+        _speakTcs = null;
         IsSpeaking = false;
     }
 
