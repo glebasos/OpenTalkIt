@@ -7,7 +7,7 @@
         mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="620"
         x:Class="OpenTalkIt.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Icon="/Assets/avalonia-logo.ico"
+        Icon="/Assets/opentalkit.ico"
         Title="OpenTalkIt"
         Width="780" Height="640"
         MinWidth="720" MinHeight="600"

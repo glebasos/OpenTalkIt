@@ -16,7 +16,7 @@ public partial class PersonalityControlViewModel : ViewModelBase
     private const int PitchMax = 500;
     private const int SpeedMin = 50;
     private const int SpeedMax = 400;
-    private const int Step = 10;
+    private const int Step = 1;
 
     private static readonly string[] Palette =
     {

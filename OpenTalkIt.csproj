@@ -5,10 +5,30 @@
         <Nullable>enable</Nullable>
         <ApplicationManifest>app.manifest</ApplicationManifest>
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+        <ApplicationIcon>Assets\opentalkit.ico</ApplicationIcon>
+    </PropertyGroup>
+
+    <!-- Release builds should not carry SkiaSharp/HarfBuzz native PDBs or our
+         own symbols — they bloat the publish folder by ~100 MB and are not
+         needed by end users. -->
+    <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+        <DebugType>none</DebugType>
+        <DebugSymbols>false</DebugSymbols>
+        <CopyDebugSymbolFilesFromPackages>false</CopyDebugSymbolFilesFromPackages>
+        <CopyDocumentationFilesFromPackages>false</CopyDocumentationFilesFromPackages>
     </PropertyGroup>
 
     <ItemGroup>
         <AvaloniaResource Include="Assets\**"/>
+    </ItemGroup>
+
+    <!-- Native 32-bit SoftVoice DLLs that TiSpeech.Host loads at runtime via
+         SetDllDirectoryW(BaseDirectory/x86). They must sit next to
+         TiSpeech.Host.exe in the x86\ folder for both local runs and publish.
+         Copied explicitly because None/Link with a subdirectory doesn't
+         survive the publish copy pass reliably. -->
+    <ItemGroup>
+        <_NativeTiDlls Include="DLLs\*.DLL" Condition="Exists('DLLs')" />
     </ItemGroup>
 
     <ItemGroup>
@@ -28,12 +48,23 @@
         <ProjectReference Include="..\..\TiSpeech.Client\TiSpeech.Client.csproj" />
     </ItemGroup>
 
+    <!-- Drop the native SoftVoice DLLs into $(OutDir)x86\ before the x86 host
+         gets copied, so dev-time runs can find TIBASE32.DLL. -->
+    <Target Name="CopyNativeTiDllsToOutput" BeforeTargets="CopyTiSpeechHost"
+            Condition="'@(_NativeTiDlls)' != ''">
+        <Copy SourceFiles="@(_NativeTiDlls)"
+              DestinationFolder="$(OutDir)x86\"
+              SkipUnchangedFiles="true" />
+    </Target>
+
     <!-- Build TiSpeech.Host (x86) and copy its output to x86\ next to this exe.
-         The native DLLs (TIBASE32.DLL etc.) also belong in that x86\ folder. -->
+         The native DLLs (TIBASE32.DLL etc.) also belong in that x86\ folder.
+         RuntimeIdentifier is cleared so an outer `dotnet publish -r win-x64` does
+         not leak a 64-bit RID into the x86 host project (NETSDK1032). -->
     <Target Name="CopyTiSpeechHost" AfterTargets="Build">
         <MSBuild Projects="..\..\TiSpeech.Host\TiSpeech.Host.csproj"
-                 Properties="Configuration=$(Configuration)"
-                 Targets="Build"
+                 Properties="Configuration=$(Configuration);RuntimeIdentifier=;SelfContained=false;PublishReadyToRun=false;PublishSingleFile=false;PublishTrimmed=false;PublishAot=false"
+                 Targets="Restore;Build"
                  BuildInParallel="false" />
         <ItemGroup>
             <_HostFiles Include="..\..\TiSpeech.Host\bin\$(Configuration)\net10.0-windows\**\*.*" />
@@ -41,6 +72,51 @@
         <Copy SourceFiles="@(_HostFiles)"
               DestinationFolder="$(OutDir)x86\%(RecursiveDir)"
               SkipUnchangedFiles="true" />
+    </Target>
+
+    <!-- Publish TiSpeech.Host as a SELF-CONTAINED win-x86 app and drop its
+         output into $(PublishDir)x86\. This is the critical difference from the
+         dev-time CopyTiSpeechHost target: end-user machines are not guaranteed
+         to have the 32-bit .NET runtime installed, so the host process dies on
+         launch if we only ship the framework-dependent build. Process.Start
+         still succeeds, but the host exits immediately and the Open() call
+         times out — the user hears nothing with no visible error.
+
+         IsPublishable=true overrides the csproj setting (which is there so that
+         solution-level publish skips the host). We also force a clean RID so an
+         outer `publish -r win-x64` doesn't leak into this x86 build. -->
+    <Target Name="PublishTiSpeechHostSelfContained" AfterTargets="Publish">
+        <MSBuild Projects="..\..\TiSpeech.Host\TiSpeech.Host.csproj"
+                 Properties="Configuration=$(Configuration);RuntimeIdentifier=win-x86;SelfContained=true;IsPublishable=true;PublishSingleFile=false;PublishTrimmed=false;PublishAot=false;PublishReadyToRun=false;PublishDir=bin\$(Configuration)\net10.0-windows\win-x86\publish\"
+                 Targets="Restore;Publish"
+                 BuildInParallel="false" />
+        <ItemGroup>
+            <_HostPublishFiles Include="..\..\TiSpeech.Host\bin\$(Configuration)\net10.0-windows\win-x86\publish\**\*.*" />
+        </ItemGroup>
+        <Copy SourceFiles="@(_HostPublishFiles)"
+              DestinationFolder="$(PublishDir)x86\%(RecursiveDir)"
+              SkipUnchangedFiles="true" />
+    </Target>
+
+    <!-- Same DLL copy for publish: put them next to TiSpeech.Host.exe in the
+         published x86\ folder. Without this the engine silently fails to load
+         TIBASE32.DLL on end-user machines. -->
+    <Target Name="CopyNativeTiDllsToPublish" AfterTargets="PublishTiSpeechHostSelfContained"
+            Condition="'@(_NativeTiDlls)' != ''">
+        <Copy SourceFiles="@(_NativeTiDlls)"
+              DestinationFolder="$(PublishDir)x86\"
+              SkipUnchangedFiles="true" />
+    </Target>
+
+    <!-- Strip all .pdb files from the publish output. SkiaSharp/HarfBuzz native
+         PDBs are delivered via runtimes/win-x64/native/ and are NOT filtered by
+         CopyDebugSymbolFilesFromPackages. Also drops project-reference PDBs that
+         slip through when the referenced projects don't opt out themselves. -->
+    <Target Name="StripPublishPdbs" AfterTargets="CopyNativeTiDllsToPublish">
+        <ItemGroup>
+            <_PublishPdbs Include="$(PublishDir)**\*.pdb" />
+        </ItemGroup>
+        <Delete Files="@(_PublishPdbs)" />
     </Target>
 
 </Project>
