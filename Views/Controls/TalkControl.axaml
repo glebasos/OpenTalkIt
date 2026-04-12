@@ -26,9 +26,14 @@
                     Command="{Binding TalkCommand}"/>
             <Button Classes="stop"
                     Content="Stop"
-                    HorizontalAlignment="Center"
+                    HorizontalAlignment="Stretch"
                     Margin="0,8,0,0"
                     Command="{Binding StopCommand}"/>
+            <Button Classes="stop"
+                    Content="Export WAV"
+                    HorizontalAlignment="Stretch"
+                    Margin="0,8,0,0"
+                    Command="{Binding ExportCommand}"/>
         </StackPanel>
     </Grid>
 </UserControl>

@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using OpenTalkIt.Models;
+using OpenTalkIt.Services;
 using TiSpeech;
 
 namespace OpenTalkIt.ViewModels;
@@ -12,7 +13,9 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public TiSpeechClient Engine { get; } = new();
 
-    public MainWindowViewModel()
+    public MainWindowViewModel() : this(null) { }
+
+    public MainWindowViewModel(IExportService? exportService)
     {
         Engine.Open(TiLanguageFlags.English | TiLanguageFlags.Spanish);
 
@@ -25,7 +28,7 @@ public partial class MainWindowViewModel : ViewModelBase
             Language:     ParameterVM.Language,
             VocalEffort:  ParameterVM.VocalEffort,
             PitchQuality: ParameterVM.PitchQuality
-        ));
+        ), exportService);
 
         PersonalityVM.PropertyChanged += OnPersonalitySelectionChanged;
     }
