@@ -4,27 +4,68 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:controls="clr-namespace:OpenTalkIt.Views.Controls"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="620"
         x:Class="OpenTalkIt.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
-        Title="OpenTalkIt">
+        Title="OpenTalkIt"
+        Width="780" Height="640"
+        MinWidth="720" MinHeight="600"
+        Background="#1D0E3C">
 
     <Design.DataContext>
-        <!-- This only sets the DataContext for the previewer in an IDE,
-             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
         <vm:MainWindowViewModel />
     </Design.DataContext>
 
     <Grid>
+        <!-- Animated cloud shader background -->
         <controls:CloudShaderControl/>
-        <StackPanel>
-            <!-- <TextBlock Text="{Binding Greeting}" HorizontalAlignment="Center" VerticalAlignment="Center" /> -->
-            <controls:PersonalityControl DataContext="{Binding PersonalityVM}"/>
-            <controls:ParameterControl   DataContext="{Binding ParameterVM}"/>
-            <controls:TalkControl        DataContext="{Binding TalkVM}"/>
-        </StackPanel>
+
+        <!-- Purple chrome frame -->
+        <Border Margin="14"
+                CornerRadius="22"
+                BorderThickness="3"
+                BorderBrush="{StaticResource Y2kHighlight}"
+                Background="{StaticResource Y2kChrome}"
+                BoxShadow="0 6 24 0 #80000000">
+            <Border CornerRadius="18"
+                    BorderThickness="2"
+                    BorderBrush="#2A134E"
+                    Margin="6"
+                    Background="#331956">
+                <Grid RowDefinitions="Auto,Auto,*" Margin="10">
+
+                    <Border Grid.Row="0"
+                            CornerRadius="14"
+                            BorderThickness="2"
+                            BorderBrush="#8562C5"
+                            Background="{StaticResource Y2kPanel}"
+                            Padding="8"
+                            Margin="0,0,0,8">
+                        <controls:PersonalityControl DataContext="{Binding PersonalityVM}"/>
+                    </Border>
+
+                    <Border Grid.Row="1"
+                            CornerRadius="14"
+                            BorderThickness="2"
+                            BorderBrush="#8562C5"
+                            Background="{StaticResource Y2kPanel}"
+                            Padding="6"
+                            Margin="0,0,0,8">
+                        <controls:ParameterControl DataContext="{Binding ParameterVM}"/>
+                    </Border>
+
+                    <Border Grid.Row="2"
+                            CornerRadius="14"
+                            BorderThickness="2"
+                            BorderBrush="#8562C5"
+                            Background="{StaticResource Y2kPanel}"
+                            Padding="6">
+                        <controls:TalkControl DataContext="{Binding TalkVM}"/>
+                    </Border>
+
+                </Grid>
+            </Border>
+        </Border>
     </Grid>
-
-
 </Window>

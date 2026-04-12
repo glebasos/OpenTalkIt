@@ -1,52 +1,42 @@
-﻿<UserControl xmlns="https://github.com/avaloniaui"
+<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:OpenTalkIt.ViewModels"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="240"
              x:Class="OpenTalkIt.Views.Controls.PersonalityControl"
              x:DataType="vm:PersonalityControlViewModel">
-    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-        <StackPanel Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center">
-            <StackPanel Margin="20">
-                <TextBlock Margin="0 5">PITCH</TextBlock>
-                <NumericUpDown Value="{Binding Pitch}" />
-            </StackPanel>
+    <Grid ColumnDefinitions="Auto,*,Auto">
+        <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="12,0">
+            <TextBlock Classes="y2k" Text="PITCH"/>
+            <NumericUpDown Classes="y2k" Value="{Binding Pitch}" Minimum="50" Maximum="500"/>
         </StackPanel>
 
-        <StackPanel Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center">
-            <TextBlock HorizontalAlignment="Center">PERSONALITY</TextBlock>
+        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+            <TextBlock Classes="y2k" Text="PERSONALITY" Margin="0,0,0,4"/>
             <ItemsControl ItemsSource="{Binding Personalities}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <UniformGrid Rows="4" Columns="5" />
+                        <UniformGrid Rows="4" Columns="5"/>
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Button Content="{Binding Label}"
+                        <Button Classes="bubble"
+                                Content="{Binding Label}"
+                                Background="{Binding ButtonBackground}"
                                 Command="{Binding $parent[UserControl].((vm:PersonalityControlViewModel)DataContext).SelectPersonalityCommand}"
                                 CommandParameter="{Binding}"
-                                Classes.selected="{Binding IsSelected}">
-                            <Button.Styles>
-                                <Style Selector="Button">
-                                    <Setter Property="Background" Value="Transparent" />
-                                </Style>
-                                <Style Selector="Button:pressed">
-                                </Style>
-                            </Button.Styles>
-                        </Button>
+                                Classes.selected="{Binding IsSelected}"
+                                HorizontalAlignment="Stretch"/>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
         </StackPanel>
 
-
-        <StackPanel Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center">
-            <StackPanel Margin="20">
-                <TextBlock Margin="0 5">SPEED</TextBlock>
-                <NumericUpDown Value="{Binding Speed}" />
-            </StackPanel>
+        <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="12,0">
+            <TextBlock Classes="y2k" Text="SPEED"/>
+            <NumericUpDown Classes="y2k" Value="{Binding Speed}" Minimum="50" Maximum="400"/>
         </StackPanel>
-    </StackPanel>
+    </Grid>
 </UserControl>

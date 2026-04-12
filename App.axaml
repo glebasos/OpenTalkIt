@@ -3,24 +3,205 @@
              x:Class="OpenTalkIt.App"
              xmlns:local="using:OpenTalkIt"
              xmlns:converters="clr-namespace:OpenTalkIt.Converters"
-             RequestedThemeVariant="Default">
-    <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
+             RequestedThemeVariant="Dark">
 
     <Application.DataTemplates>
         <local:ViewLocator />
     </Application.DataTemplates>
 
-    <Application.Styles>
-        <FluentTheme />
-        <Style Selector="Button.selected">
-            <Setter Property="Background" Value="#0078D4" />
-            <Setter Property="Foreground" Value="White" />
-        </Style>
-    </Application.Styles>
-    
     <Application.Resources>
         <converters:EnumToBoolConverter x:Key="EnumToBool"/>
+
+        <SolidColorBrush x:Key="Y2kDeepPurple" Color="#1D0E3C"/>
+        <SolidColorBrush x:Key="Y2kPurple"     Color="#4B2A8A"/>
+        <SolidColorBrush x:Key="Y2kLight"      Color="#8562C5"/>
+        <SolidColorBrush x:Key="Y2kCream"      Color="#FFF7D6"/>
+        <SolidColorBrush x:Key="Y2kHighlight"  Color="#FFE066"/>
+        <SolidColorBrush x:Key="Y2kInk"        Color="#2A134E"/>
+
+        <LinearGradientBrush x:Key="Y2kChrome" StartPoint="0%,0%" EndPoint="0%,100%">
+            <GradientStop Offset="0.0" Color="#8F6ED1"/>
+            <GradientStop Offset="0.5" Color="#4B2A8A"/>
+            <GradientStop Offset="1.0" Color="#1D0E3C"/>
+        </LinearGradientBrush>
+
+        <LinearGradientBrush x:Key="Y2kPanel" StartPoint="0%,0%" EndPoint="0%,100%">
+            <GradientStop Offset="0.0" Color="#6340A5"/>
+            <GradientStop Offset="1.0" Color="#33195E"/>
+        </LinearGradientBrush>
+
+        <RadialGradientBrush x:Key="Y2kTalkIt" Center="50%,35%" GradientOrigin="50%,35%" RadiusX="0.75" RadiusY="0.9">
+            <GradientStop Offset="0.0" Color="#C7A9F0"/>
+            <GradientStop Offset="0.6" Color="#6D42B8"/>
+            <GradientStop Offset="1.0" Color="#2A134E"/>
+        </RadialGradientBrush>
     </Application.Resources>
 
+    <Application.Styles>
+        <FluentTheme />
 
+        <!-- Y2K text label -->
+        <Style Selector="TextBlock.y2k">
+            <Setter Property="Foreground" Value="{StaticResource Y2kCream}"/>
+            <Setter Property="FontFamily" Value="Comic Sans MS, Segoe UI"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+        </Style>
+
+        <!-- Bubble personality button: custom template so Fluent hover doesn't override background -->
+        <Style Selector="Button.bubble">
+            <Setter Property="BorderBrush" Value="{StaticResource Y2kInk}"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="CornerRadius" Value="14"/>
+            <Setter Property="Foreground" Value="{StaticResource Y2kInk}"/>
+            <Setter Property="FontFamily" Value="Comic Sans MS, Segoe UI"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="Padding" Value="4,2"/>
+            <Setter Property="Margin" Value="3"/>
+            <Setter Property="MinHeight" Value="32"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{TemplateBinding CornerRadius}">
+                        <ContentPresenter Content="{TemplateBinding Content}"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}"
+                                          Padding="{TemplateBinding Padding}"
+                                          HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                          Foreground="{TemplateBinding Foreground}"
+                                          FontFamily="{TemplateBinding FontFamily}"
+                                          FontWeight="{TemplateBinding FontWeight}"
+                                          FontSize="{TemplateBinding FontSize}"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="Button.bubble:pointerover">
+            <Setter Property="BorderBrush" Value="{StaticResource Y2kHighlight}"/>
+        </Style>
+        <Style Selector="Button.bubble.selected">
+            <Setter Property="BorderBrush" Value="{StaticResource Y2kHighlight}"/>
+            <Setter Property="BorderThickness" Value="3"/>
+        </Style>
+
+        <!-- Round Talk It! button -->
+        <Style Selector="Button.talkit">
+            <Setter Property="Background" Value="{StaticResource Y2kTalkIt}"/>
+            <Setter Property="Foreground" Value="{StaticResource Y2kCream}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Y2kHighlight}"/>
+            <Setter Property="BorderThickness" Value="3"/>
+            <Setter Property="CornerRadius" Value="60"/>
+            <Setter Property="FontFamily" Value="Comic Sans MS, Segoe UI"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="20"/>
+            <Setter Property="Width" Value="120"/>
+            <Setter Property="Height" Value="60"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{TemplateBinding CornerRadius}">
+                        <ContentPresenter Content="{TemplateBinding Content}"
+                                          HorizontalContentAlignment="Center"
+                                          VerticalContentAlignment="Center"
+                                          Foreground="{TemplateBinding Foreground}"
+                                          FontFamily="{TemplateBinding FontFamily}"
+                                          FontWeight="{TemplateBinding FontWeight}"
+                                          FontSize="{TemplateBinding FontSize}"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="Button.talkit:pointerover">
+            <Setter Property="BorderBrush" Value="#FFFFFF"/>
+        </Style>
+
+        <!-- Small chunky stop button -->
+        <Style Selector="Button.stop">
+            <Setter Property="Background" Value="{StaticResource Y2kInk}"/>
+            <Setter Property="Foreground" Value="{StaticResource Y2kCream}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Y2kLight}"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="CornerRadius" Value="14"/>
+            <Setter Property="FontFamily" Value="Comic Sans MS, Segoe UI"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Padding" Value="14,6"/>
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{TemplateBinding CornerRadius}">
+                        <ContentPresenter Content="{TemplateBinding Content}"
+                                          Padding="{TemplateBinding Padding}"
+                                          HorizontalContentAlignment="Center"
+                                          VerticalContentAlignment="Center"
+                                          Foreground="{TemplateBinding Foreground}"
+                                          FontFamily="{TemplateBinding FontFamily}"
+                                          FontWeight="{TemplateBinding FontWeight}"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="Button.stop:pointerover">
+            <Setter Property="BorderBrush" Value="{StaticResource Y2kHighlight}"/>
+        </Style>
+
+        <!-- Cream text box -->
+        <Style Selector="TextBox.cream">
+            <Setter Property="Background" Value="{StaticResource Y2kCream}"/>
+            <Setter Property="Foreground" Value="{StaticResource Y2kInk}"/>
+            <Setter Property="CaretBrush" Value="{StaticResource Y2kInk}"/>
+            <Setter Property="FontFamily" Value="Comic Sans MS, Segoe UI"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Y2kInk}"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="8"/>
+            <Setter Property="AcceptsReturn" Value="True"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+        <Style Selector="TextBox.cream /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="{StaticResource Y2kCream}"/>
+        </Style>
+        <Style Selector="TextBox.cream:pointerover /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="{StaticResource Y2kCream}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Y2kHighlight}"/>
+        </Style>
+        <Style Selector="TextBox.cream:focus /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="{StaticResource Y2kCream}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Y2kHighlight}"/>
+        </Style>
+
+        <!-- Y2K radio -->
+        <Style Selector="RadioButton.y2k">
+            <Setter Property="Foreground" Value="{StaticResource Y2kCream}"/>
+            <Setter Property="FontFamily" Value="Comic Sans MS, Segoe UI"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Padding" Value="6,2"/>
+        </Style>
+
+        <!-- Y2K numeric up down -->
+        <Style Selector="NumericUpDown.y2k">
+            <Setter Property="Background" Value="{StaticResource Y2kCream}"/>
+            <Setter Property="Foreground" Value="{StaticResource Y2kInk}"/>
+            <Setter Property="FontFamily" Value="Comic Sans MS, Segoe UI"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Y2kInk}"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Width" Value="100"/>
+        </Style>
+    </Application.Styles>
 </Application>
