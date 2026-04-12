@@ -3,13 +3,25 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:OpenTalkIt.ViewModels"
-             mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="240"
+             mc:Ignorable="d" d:DesignWidth="720" d:DesignHeight="240"
              x:Class="OpenTalkIt.Views.Controls.PersonalityControl"
              x:DataType="vm:PersonalityControlViewModel">
     <Grid ColumnDefinitions="Auto,*,Auto">
-        <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="12,0">
-            <TextBlock Classes="y2k" Text="PITCH"/>
-            <NumericUpDown Classes="y2k" Value="{Binding Pitch}" Minimum="50" Maximum="500"/>
+
+        <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="8,0">
+            <TextBlock Classes="y2k" Text="PITCH" Margin="0,0,0,4"/>
+            <TextBox Classes="stepper" Width="90"
+                     Text="{Binding Pitch}"/>
+            <Grid ColumnDefinitions="*,6,*" Margin="0,6,0,0">
+                <Button Grid.Column="0" Classes="step"
+                        Content="&#x25BC;"
+                        Command="{Binding PitchDownCommand}"
+                        HorizontalAlignment="Stretch"/>
+                <Button Grid.Column="2" Classes="step"
+                        Content="&#x25B2;"
+                        Command="{Binding PitchUpCommand}"
+                        HorizontalAlignment="Stretch"/>
+            </Grid>
         </StackPanel>
 
         <StackPanel Grid.Column="1" VerticalAlignment="Center">
@@ -34,9 +46,20 @@
             </ItemsControl>
         </StackPanel>
 
-        <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="12,0">
-            <TextBlock Classes="y2k" Text="SPEED"/>
-            <NumericUpDown Classes="y2k" Value="{Binding Speed}" Minimum="50" Maximum="400"/>
+        <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="8,0">
+            <TextBlock Classes="y2k" Text="SPEED" Margin="0,0,0,4"/>
+            <TextBox Classes="stepper" Width="90"
+                     Text="{Binding Speed}"/>
+            <Grid ColumnDefinitions="*,6,*" Margin="0,6,0,0">
+                <Button Grid.Column="0" Classes="step"
+                        Content="&#x25BC;"
+                        Command="{Binding SpeedDownCommand}"
+                        HorizontalAlignment="Stretch"/>
+                <Button Grid.Column="2" Classes="step"
+                        Content="&#x25B2;"
+                        Command="{Binding SpeedUpCommand}"
+                        HorizontalAlignment="Stretch"/>
+            </Grid>
         </StackPanel>
     </Grid>
 </UserControl>

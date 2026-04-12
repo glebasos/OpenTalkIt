@@ -12,6 +12,12 @@ namespace OpenTalkIt.ViewModels;
 
 public partial class PersonalityControlViewModel : ViewModelBase
 {
+    private const int PitchMin = 50;
+    private const int PitchMax = 500;
+    private const int SpeedMin = 50;
+    private const int SpeedMax = 400;
+    private const int Step = 10;
+
     private static readonly string[] Palette =
     {
         "#FFB3D9", "#FF9E80", "#FFCB80", "#FFEE80",
@@ -37,6 +43,23 @@ public partial class PersonalityControlViewModel : ViewModelBase
         SelectedPersonality = p;
         Pitch = p.Preset.Pitch;
         Speed = p.Preset.Speed;
+    }
+
+    [RelayCommand] private void PitchUp()   => Pitch = Math.Min(Pitch + Step, PitchMax);
+    [RelayCommand] private void PitchDown() => Pitch = Math.Max(Pitch - Step, PitchMin);
+    [RelayCommand] private void SpeedUp()   => Speed = Math.Min(Speed + Step, SpeedMax);
+    [RelayCommand] private void SpeedDown() => Speed = Math.Max(Speed - Step, SpeedMin);
+
+    partial void OnPitchChanged(int value)
+    {
+        if (value < PitchMin) Pitch = PitchMin;
+        else if (value > PitchMax) Pitch = PitchMax;
+    }
+
+    partial void OnSpeedChanged(int value)
+    {
+        if (value < SpeedMin) Speed = SpeedMin;
+        else if (value > SpeedMax) Speed = SpeedMax;
     }
 
     public PersonalityControlViewModel()

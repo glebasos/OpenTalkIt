@@ -192,16 +192,73 @@
             <Setter Property="Padding" Value="6,2"/>
         </Style>
 
-        <!-- Y2K numeric up down -->
-        <Style Selector="NumericUpDown.y2k">
+        <!-- Y2K stepper text box: cream pill for numeric display/edit -->
+        <Style Selector="TextBox.stepper">
             <Setter Property="Background" Value="{StaticResource Y2kCream}"/>
             <Setter Property="Foreground" Value="{StaticResource Y2kInk}"/>
+            <Setter Property="CaretBrush" Value="{StaticResource Y2kInk}"/>
+            <Setter Property="SelectionBrush" Value="#FFE066"/>
             <Setter Property="FontFamily" Value="Comic Sans MS, Segoe UI"/>
             <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="16"/>
             <Setter Property="BorderBrush" Value="{StaticResource Y2kInk}"/>
             <Setter Property="BorderThickness" Value="2"/>
-            <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="Width" Value="100"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Padding" Value="6,2"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="TextBox.stepper /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="{StaticResource Y2kCream}"/>
+        </Style>
+        <Style Selector="TextBox.stepper:pointerover /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="{StaticResource Y2kCream}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Y2kHighlight}"/>
+        </Style>
+        <Style Selector="TextBox.stepper:focus /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="{StaticResource Y2kCream}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Y2kHighlight}"/>
+        </Style>
+
+        <!-- Y2K step up/down button: chunky rounded bubble with glyph -->
+        <Style Selector="Button.step">
+            <Setter Property="Background" Value="#B39EE8"/>
+            <Setter Property="Foreground" Value="{StaticResource Y2kInk}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Y2kInk}"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="FontFamily" Value="Segoe UI Symbol, Segoe UI"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Width" Value="34"/>
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{TemplateBinding CornerRadius}">
+                        <ContentPresenter Content="{TemplateBinding Content}"
+                                          HorizontalContentAlignment="Center"
+                                          VerticalContentAlignment="Center"
+                                          Foreground="{TemplateBinding Foreground}"
+                                          FontFamily="{TemplateBinding FontFamily}"
+                                          FontWeight="{TemplateBinding FontWeight}"
+                                          FontSize="{TemplateBinding FontSize}"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="Button.step:pointerover">
+            <Setter Property="BorderBrush" Value="{StaticResource Y2kHighlight}"/>
+            <Setter Property="Background" Value="#C9B5F0"/>
+        </Style>
+        <Style Selector="Button.step:pressed">
+            <Setter Property="Background" Value="#9680D9"/>
         </Style>
     </Application.Styles>
 </Application>
