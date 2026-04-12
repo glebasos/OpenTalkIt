@@ -4,6 +4,8 @@ An open-source reimplementation of the **Microsoft Talk It!** frontend, built wi
 
 Talk It! was a Windows speech synthesis application from the 1990s powered by the SoftVoice engine (`TIBASE32.DLL`). OpenTalkIt recreates its UI and behaviour as a modern cross-architecture desktop app, wrapping the original 32-bit DLL through the companion **TiSpeech** library.
 
+![OpenTalkIt UI](ui.png)
+
 ## Features
 
 - 20 voice personalities with per-personality presets (pitch, speed, pitch quality, vocal effort) matching the original application
@@ -12,6 +14,7 @@ Talk It! was a Windows speech synthesis application from the 1990s powered by th
 - Language switching: English / Spanish (German supported by the engine)
 - Pitch and speed adjustable per personality
 - Async speech with Stop support
+- WAV export via WASAPI loopback capture
 
 ## Requirements
 
@@ -34,12 +37,15 @@ The native DLLs are **not** included. You need an original Talk It! installation
 dotnet run --project OpenTalkIt/OpenTalkIt.csproj
 ```
 
-> The DLL path is currently hardcoded in `MainWindowViewModel`. A settings screen is planned.
-
 ## Project Structure
 
+The solution spans three sibling repositories:
+
 ```
-OpenTalkIt/          Avalonia UI application
+TiSpeech/              Core P/Invoke bindings and engine types
+TiSpeech.Client/       Named-pipe client that talks to TiSpeech.Host
+TiSpeech.Host/         32-bit out-of-process host that loads TIBASE32.DLL
+OpenTalkIt/            Avalonia UI application (this repo)
   Models/
     PersonalityButtonModel.cs   Per-personality button state
     PersonalityPreset.cs        Preset record (pitch, speed, pitch quality, vocal effort)
@@ -49,20 +55,23 @@ OpenTalkIt/          Avalonia UI application
     MainWindowViewModel.cs      Composition root; wires preset application on personality change
     PersonalityControlViewModel Personality grid + pitch/speed controls
     ParameterControlViewModel   Pitch quality, vocal effort, language
-    TalkControlViewModel        Text input, Talk/Stop commands
+    TalkControlViewModel        Text input, Talk/Stop/Export commands
   Views/Controls/
     PersonalityControl.axaml    4×5 personality grid with pitch and speed inputs
     ParameterControl.axaml      Radio button groups for pitch quality, vocal effort, language
-    TalkControl.axaml           Text box and Talk It! / Stop buttons
-
-TiSpeech/            Managed wrapper library for TIBASE32.DLL
+    TalkControl.axaml           Text box and Talk It! / Stop / Export buttons
+  Services/
+    WavRecorder.cs              WASAPI loopback capture for WAV export
+    Settings.cs                 JSON settings persistence (%APPDATA%/OpenTalkIt/)
 ```
 
 ## TiSpeech Library
 
-TiSpeech is a standalone .NET 10 library that wraps `TIBASE32.DLL` via P/Invoke. It handles engine lifecycle, speech synthesis, voice parameter setting, and async completion notification through a hidden Win32 message-only window (no Windows Forms dependency).
+TiSpeech is a standalone .NET 10 library that wraps `TIBASE32.DLL` via P/Invoke. Because `TIBASE32.DLL` is 32-bit, the engine runs in a dedicated **TiSpeech.Host** process (x86 self-contained executable). The main app communicates with it through **TiSpeech.Client** over a named pipe. This lets the 64-bit Avalonia host and the 32-bit engine coexist without forcing the whole app to run as x86.
 
-See [`TiSpeech/TiSpeech.md`](TiSpeech/TiSpeech.md) for the full API reference.
+TiSpeech.Host handles engine lifecycle, speech synthesis, voice parameter setting, and async completion notification through a hidden Win32 message-only window (no Windows Forms dependency).
+
+See [`TiSpeech/TiSpeech.md`](../../TiSpeech/TiSpeech.md) for the full API reference.
 
 ### Key enums
 
@@ -73,6 +82,10 @@ See [`TiSpeech/TiSpeech.md`](TiSpeech/TiSpeech.md) for the full API reference.
 | `TiF0Style` | Pitch contour: Natural / Monotone / Sung / Whispered-style |
 | `TiSpeakingMode` | Token interpretation: Natural / Word / Spell / Number |
 | `TiLanguage` | Runtime language switch |
+
+## WAV Export
+
+Since SoftVoice exposes no file-export API, WAV export works by capturing the system audio output (WASAPI loopback) while speech is playing. The captured audio is written to a WAV file at a location chosen via a save-file dialog. The last-used export folder is persisted in `%APPDATA%/OpenTalkIt/settings.json`.
 
 ## Reverse Engineering Notes
 
