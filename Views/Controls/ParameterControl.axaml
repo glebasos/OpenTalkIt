@@ -1,0 +1,71 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:OpenTalkIt.ViewModels"
+             xmlns:tispeech="clr-namespace:TiSpeech;assembly=TiSpeech"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="OpenTalkIt.Views.Controls.ParameterControl"
+             x:DataType="vm:ParameterControlViewModel">
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <StackPanel>
+            <TextBlock>PITCH QUALITY</TextBlock>
+            <RadioButton GroupName="Pitch Quality"
+                         Content="Natural"
+                         IsChecked="{Binding PitchQuality,
+                           Mode=TwoWay,
+                           Converter={StaticResource EnumToBool},
+                           ConverterParameter={x:Static tispeech:TiF0Style.Natural}}"/>
+            <RadioButton GroupName="Pitch Quality"
+                         Content="Monotone"
+                         IsChecked="{Binding PitchQuality,
+                           Mode=TwoWay,
+                           Converter={StaticResource EnumToBool},
+                           ConverterParameter={x:Static tispeech:TiF0Style.Monotone}}"/>
+            <RadioButton GroupName="Pitch Quality"
+                         Content="Sung"
+                         IsChecked="{Binding PitchQuality,
+                           Mode=TwoWay,
+                           Converter={StaticResource EnumToBool},
+                           ConverterParameter={x:Static tispeech:TiF0Style.Sung}}"/>
+        </StackPanel>
+        <StackPanel>
+            <TextBlock>LANGUAGE</TextBlock>                                                                                                                                                                                                                                                                               
+            <RadioButton GroupName="Language"
+                         Content="English"                                                                                                                                                                                                                                                                                
+                         IsChecked="{Binding Language,
+                     Mode=TwoWay,
+                     Converter={StaticResource EnumToBool},
+                     ConverterParameter={x:Static tispeech:TiLanguage.English}}"/>
+            <RadioButton GroupName="Language"
+                         Content="Spanish"
+                         IsChecked="{Binding Language,
+                     Mode=TwoWay,
+                     Converter={StaticResource EnumToBool},
+                     ConverterParameter={x:Static tispeech:TiLanguage.Spanish}}"/>
+        </StackPanel>
+
+        <StackPanel>
+            <TextBlock>VOCAL EFFORT</TextBlock>
+            <RadioButton GroupName="Vocal Effort"
+                         Content="Normal"
+                         IsChecked="{Binding VocalEffort,
+                           Mode=TwoWay,
+                           Converter={StaticResource EnumToBool},
+                           ConverterParameter={x:Static tispeech:TiVoicingMode.Normal}}"/>
+            <RadioButton GroupName="Vocal Effort"
+                         Content="Breathy"
+                         IsChecked="{Binding VocalEffort,
+                           Mode=TwoWay,
+                           Converter={StaticResource EnumToBool},
+                           ConverterParameter={x:Static tispeech:TiVoicingMode.Breathy}}"/>
+            <RadioButton GroupName="Vocal Effort"
+                         Content="Whispered"
+                         IsChecked="{Binding VocalEffort,
+                           Mode=TwoWay,
+                           Converter={StaticResource EnumToBool},
+                           ConverterParameter={x:Static tispeech:TiVoicingMode.Whispered}}"/>
+        </StackPanel>
+    </StackPanel>
+</UserControl>
