@@ -71,7 +71,7 @@ TiSpeech is a standalone .NET 10 library that wraps `TIBASE32.DLL` via P/Invoke.
 
 TiSpeech.Host handles engine lifecycle, speech synthesis, voice parameter setting, and async completion notification through a hidden Win32 message-only window (no Windows Forms dependency).
 
-See [`TiSpeech/TiSpeech.md`](../../TiSpeech/TiSpeech.md) for the full API reference.
+See [`TiSpeech/TiSpeech.md`](https://github.com/glebasos/TiSpeech/blob/master/TiSpeech.md) for the full API reference.
 
 ### Key enums
 
