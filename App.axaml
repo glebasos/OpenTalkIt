@@ -260,5 +260,14 @@
         <Style Selector="Button.step:pressed">
             <Setter Property="Background" Value="#9680D9"/>
         </Style>
+
+        <!-- Y2K progress bar: cream track, highlight yellow indicator -->
+        <Style Selector="ProgressBar.y2k">
+            <Setter Property="Foreground" Value="{StaticResource Y2kHighlight}"/>
+            <Setter Property="Background" Value="{StaticResource Y2kCream}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Y2kInk}"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="CornerRadius" Value="7"/>
+        </Style>
     </Application.Styles>
 </Application>

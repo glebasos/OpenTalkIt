@@ -7,7 +7,7 @@
              x:Class="OpenTalkIt.Views.Controls.TalkControl"
              x:DataType="vm:TalkControlViewModel">
 
-    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,*" Margin="12,6">
+    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,*,Auto" Margin="12,6">
         <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
                    Classes="y2k" HorizontalAlignment="Left" Margin="4,0,0,4"
                    Text="Type your text here!"/>
@@ -35,5 +35,25 @@
                     Margin="0,8,0,0"
                     Command="{Binding ExportCommand}"/>
         </StackPanel>
+
+        <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+                Margin="0,10,0,0"
+                Padding="10,6"
+                CornerRadius="10"
+                BorderThickness="2"
+                BorderBrush="{StaticResource Y2kHighlight}"
+                Background="{StaticResource Y2kInk}"
+                IsVisible="{Binding IsExporting}">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="10">
+                <TextBlock Classes="y2k" VerticalAlignment="Center"
+                           Foreground="{StaticResource Y2kHighlight}"
+                           Text="EXPORTING WAV..."/>
+                <ProgressBar Classes="y2k"
+                             IsIndeterminate="True"
+                             MinWidth="260"
+                             Height="14"
+                             VerticalAlignment="Center"/>
+            </StackPanel>
+        </Border>
     </Grid>
 </UserControl>
