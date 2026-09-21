@@ -261,6 +261,16 @@
             <Setter Property="Background" Value="#9680D9"/>
         </Style>
 
+        <!-- Phoneme readout: monospace so the SoftVoice phoneme symbols line up
+             and stay legible, on the same cream pill as the text box. -->
+        <Style Selector="SelectableTextBlock.phonemes">
+            <Setter Property="Foreground" Value="{StaticResource Y2kInk}"/>
+            <Setter Property="FontFamily" Value="Menlo, Consolas, Courier New, monospace"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="SelectionBrush" Value="{StaticResource Y2kHighlight}"/>
+        </Style>
+
         <!-- Y2K progress bar: cream track, highlight yellow indicator -->
         <Style Selector="ProgressBar.y2k">
             <Setter Property="Foreground" Value="{StaticResource Y2kHighlight}"/>

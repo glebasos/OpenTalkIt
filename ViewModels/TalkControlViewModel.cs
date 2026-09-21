@@ -12,7 +12,7 @@ namespace OpenTalkIt.ViewModels;
 
 public partial class TalkControlViewModel : ViewModelBase
 {
-    private readonly TiSpeechClient _engine;
+    private readonly ITiSpeechBackend _engine;
     private readonly Func<TalkParameters> _getParameters;
     private readonly IExportService? _exportService;
 
@@ -22,6 +22,10 @@ public partial class TalkControlViewModel : ViewModelBase
     /// guards the Export command until a cross-platform capture path (or a
     /// direct-to-file export from the engine) exists — see OpenTalkIt README /
     /// port notes. It intentionally does not fall back to any other backend.
+    ///
+    /// Unlike the speech gate below, this one legitimately stays an OS check:
+    /// the missing thing here is a platform audio API, not an engine
+    /// capability, so there is nothing to ask the backend about.
     /// </summary>
     public bool IsExportSupported { get; } = WavRecorder.IsSupported;
 
@@ -33,44 +37,72 @@ public partial class TalkControlViewModel : ViewModelBase
     private readonly string? _engineErrorMessage;
 
     /// <summary>
-    /// Whether <see cref="TiSpeechClient.Open"/> succeeded. On Windows this
-    /// can still be false if the TiSpeech.Host x86 process or the SoftVoice
-    /// DLLs are missing. On macOS/Linux, TiSpeechClient itself guards
-    /// unsupported platforms and reports why via its Error event (native
-    /// engine reconstruction in progress — no Wine/emulation shim, no
-    /// alternative voice backend), so this is always false there today. The
-    /// UI must not claim speech works when this is false.
+    /// Whether the selected backend actually opened — i.e. whether calling
+    /// <see cref="ITiSpeechBackend.Speak"/> will produce the original engine's
+    /// audio. On Windows this is the 32-bit SoftVoice host; on macOS/Linux it is
+    /// false today because the portable reconstruction's phoneme-to-audio stage
+    /// is not written yet (<c>tispeech_synthesize()</c> returns
+    /// TISPEECH_E_NOTIMPL) and no substitute voice is used by design.
+    ///
+    /// The UI must not claim speech works when this is false.
     /// </summary>
     public bool EngineAvailable { get; }
 
     /// <summary>
+    /// What the selected backend can really do, straight from
+    /// <see cref="ITiSpeechBackend.Capabilities"/>. This is what the gates below
+    /// consult instead of <c>OperatingSystem.IsWindows()</c>: the question is
+    /// never "which OS is this?" but "can this backend synthesise?".
+    /// </summary>
+    public TiEngineCapabilities EngineCapabilities => _engine.Capabilities;
+
+    /// <summary>Backend name, so messages and logs can say which one answered.</summary>
+    public string EngineName => _engine.Name;
+
+    /// <summary>
     /// Bindable reason shown when the engine isn't available; null when it is.
-    /// Prefers the actual message TiSpeechClient raised via its Error event
-    /// (e.g. "native engine reconstruction is in progress") over a guessed
-    /// one, so the UI shows what the engine itself reported instead of a
-    /// generic guess.
+    ///
+    /// Sourced entirely from what the backends themselves reported — the
+    /// message captured around <see cref="ITiSpeechBackend.Open"/> first, then
+    /// the backend's own <see cref="ITiSpeechBackend.UnavailableReason"/>, then
+    /// a capability-derived fallback. There is deliberately no
+    /// <c>OperatingSystem.IsWindows()</c> branch here any more: the old one
+    /// guessed a cause from the platform, and guessed wrong whenever the real
+    /// cause was something else (missing DLLs on Windows, a native library the
+    /// user had built on macOS, ...).
     /// </summary>
     public string? EngineUnavailableReason => EngineAvailable
         ? null
         : !string.IsNullOrWhiteSpace(_engineErrorMessage)
             ? _engineErrorMessage
-            : OperatingSystem.IsWindows()
-                ? "Speech engine failed to start. Make sure TIBASE32.DLL and TIENG32.DLL are in OpenTalkIt/DLLs (see README), then restart."
-                : "Speech engine isn't available on this platform yet. A native (non-Windows) engine is under active development — see the project README for status.";
+            : !string.IsNullOrWhiteSpace(_engine.UnavailableReason)
+                ? _engine.UnavailableReason
+                : $"The {_engine.Name} backend is loaded but reports no synthesis capability " +
+                  $"({DescribeCapabilities(EngineCapabilities)}), so Talk and Export stay disabled.";
+
+    /// <summary>Phoneme readout — the one cross-platform feature that is genuinely backed by working code.</summary>
+    public PhonemeControlViewModel? PhonemeVM { get; }
+
+    public bool HasPhonemeFeature => PhonemeVM is not null;
 
     public TalkControlViewModel(
-        TiSpeechClient engine,
+        ITiSpeechBackend engine,
         Func<TalkParameters> getParameters,
         IExportService? exportService = null,
         bool engineAvailable = true,
-        string? engineErrorMessage = null)
+        string? engineErrorMessage = null,
+        PhonemeControlViewModel? phonemeVm = null)
     {
         _engine = engine;
         _getParameters = getParameters;
         _exportService = exportService;
         EngineAvailable = engineAvailable;
         _engineErrorMessage = engineErrorMessage;
+        PhonemeVM = phonemeVm;
     }
+
+    private static string DescribeCapabilities(TiEngineCapabilities capabilities) =>
+        capabilities == TiEngineCapabilities.None ? "no capabilities" : capabilities.ToString();
 
     [ObservableProperty] private string _text = string.Empty;
     [ObservableProperty] private bool _isSpeaking;
@@ -190,5 +222,14 @@ public partial class TalkControlViewModel : ViewModelBase
     {
         TalkCommand.NotifyCanExecuteChanged();
         ExportCommand.NotifyCanExecuteChanged();
+        // The phoneme readout belongs to the previous text; drop it.
+        PhonemeVM?.NotifyInputChanged();
     }
+
+    /// <summary>
+    /// Called by <see cref="MainWindowViewModel"/> when the language radio
+    /// changes: the same text converts to different phonemes per language, so a
+    /// stale readout would be wrong rather than merely old.
+    /// </summary>
+    public void NotifyLanguageChanged() => PhonemeVM?.NotifyInputChanged();
 }

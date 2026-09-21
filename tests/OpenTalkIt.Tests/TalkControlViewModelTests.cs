@@ -108,18 +108,28 @@ public class TalkControlViewModelTests
     }
 
     [Fact]
-    public void EngineUnavailable_NoClientMessage_FallsBackToPlatformSpecificReason()
+    public void EngineUnavailable_NoClientMessage_FallsBackToACapabilityDerivedReason()
     {
-        // Defense-in-depth path: if TiSpeechClient ever fails without raising
-        // an Error message (e.g. a future failure mode), the VM still shows
-        // something actionable instead of a blank/null reason.
+        // CHANGED while replacing the UI's OS-based gating with real capability
+        // queries. This test previously pinned two hardcoded strings chosen by
+        // OperatingSystem.IsWindows(). That branch guessed a *cause* from the
+        // platform and got it wrong whenever the real cause was something else
+        // — a Windows box missing only TIENG32.DLL, or a macOS box where the
+        // user HAD built the native library. The fallback now names the backend
+        // that answered and the capabilities it reported, which is true
+        // everywhere. See TalkControlViewModel.EngineUnavailableReason.
+        //
+        // Defense-in-depth path is unchanged in spirit: if the backend fails
+        // without raising an Error message, the VM still shows something
+        // concrete instead of a blank/null reason.
         var vm = MakeVm(engineAvailable: false);
 
-        var expected = OperatingSystem.IsWindows()
-            ? "Speech engine failed to start. Make sure TIBASE32.DLL and TIENG32.DLL are in OpenTalkIt/DLLs (see README), then restart."
-            : "Speech engine isn't available on this platform yet. A native (non-Windows) engine is under active development — see the project README for status.";
-
-        Assert.Equal(expected, vm.EngineUnavailableReason);
+        var reason = vm.EngineUnavailableReason!;
+        Assert.False(string.IsNullOrWhiteSpace(reason));
+        Assert.Contains("no synthesis capability", reason, StringComparison.Ordinal);
+        Assert.Contains("Talk and Export stay disabled", reason, StringComparison.Ordinal);
+        // The message describes the backend, not the operating system.
+        Assert.DoesNotContain("platform", reason, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

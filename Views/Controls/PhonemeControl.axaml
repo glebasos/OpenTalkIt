@@ -1,0 +1,70 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:OpenTalkIt.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="80"
+             x:Class="OpenTalkIt.Views.Controls.PhonemeControl"
+             x:DataType="vm:PhonemeControlViewModel">
+
+    <StackPanel Orientation="Vertical">
+
+        <!-- The phoneme string the reconstructed letter-to-sound rules produced.
+             Cream pill, same idiom as the text box it sits under. -->
+        <Border Margin="0,8,0,0"
+                Padding="10,6"
+                CornerRadius="8"
+                BorderThickness="2"
+                BorderBrush="{StaticResource Y2kInk}"
+                Background="{StaticResource Y2kCream}"
+                IsVisible="{Binding HasPhonemes}"
+                ToolTip.Tip="{Binding BuildInfo}">
+            <StackPanel Orientation="Vertical" Spacing="2">
+                <TextBlock Classes="y2k" HorizontalAlignment="Left"
+                           Foreground="{StaticResource Y2kPurple}"
+                           Text="PHONEMES"/>
+                <SelectableTextBlock Classes="phonemes"
+                                     TextWrapping="Wrap"
+                                     Text="{Binding Phonemes}"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Something went wrong for this particular request (unsupported
+             language, unconvertible characters). The readout above is cleared
+             rather than left showing a stale or partial answer. -->
+        <Border Margin="0,8,0,0"
+                Padding="10,6"
+                CornerRadius="8"
+                BorderThickness="2"
+                BorderBrush="{StaticResource Y2kHighlight}"
+                Background="{StaticResource Y2kInk}"
+                IsVisible="{Binding HasStatusMessage}">
+            <TextBlock Classes="y2k" TextWrapping="Wrap"
+                       HorizontalAlignment="Left"
+                       Foreground="{StaticResource Y2kHighlight}"
+                       Text="{Binding StatusMessage}"/>
+        </Border>
+
+        <!-- The feature itself is unavailable: no native library, or a library
+             built without language data. Expected states, explained plainly. -->
+        <Border Margin="0,8,0,0"
+                Padding="10,6"
+                CornerRadius="8"
+                BorderThickness="2"
+                BorderBrush="{StaticResource Y2kLight}"
+                Background="{StaticResource Y2kInk}"
+                IsVisible="{Binding ShowUnavailableNotice}"
+                ToolTip.Tip="{Binding UnavailableDetail}">
+            <StackPanel Orientation="Vertical" Spacing="2">
+                <TextBlock Classes="y2k" HorizontalAlignment="Left"
+                           Foreground="{StaticResource Y2kLight}"
+                           Text="PHONEMES UNAVAILABLE"/>
+                <TextBlock Classes="y2k" TextWrapping="Wrap"
+                           HorizontalAlignment="Left"
+                           Foreground="{StaticResource Y2kCream}"
+                           Text="{Binding UnavailableReason}"/>
+            </StackPanel>
+        </Border>
+
+    </StackPanel>
+</UserControl>
