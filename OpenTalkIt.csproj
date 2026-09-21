@@ -1,9 +1,25 @@
 <Project Sdk="Microsoft.NET.Sdk">
+    <!-- Whether this build/publish targets Windows. Honors an explicit
+         RuntimeIdentifier first, so cross-publishing with `-r win-x64` from
+         macOS/Linux still pulls in the win-x86 TiSpeech.Host toolchain below;
+         falls back to the build OS for a plain `dotnet build`/`dotnet run`
+         with no RID. Everything Windows-only (the app manifest, the x86
+         SoftVoice host copy/publish targets) is gated on this. -->
+    <PropertyGroup>
+        <_TargetsWindows Condition="'$(RuntimeIdentifier)' != '' AND $(RuntimeIdentifier.StartsWith('win'))">true</_TargetsWindows>
+        <_TargetsWindows Condition="'$(RuntimeIdentifier)' == '' AND '$(OS)' == 'Windows_NT'">true</_TargetsWindows>
+        <_TargetsWindows Condition="'$(_TargetsWindows)' == ''">false</_TargetsWindows>
+    </PropertyGroup>
+
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
-        <TargetFramework>net10.0-windows</TargetFramework>
+        <!-- Plain net10.0 so this project can build/run on macOS and Linux.
+             TiSpeech.Client (the only project reference) is also net10.0 now;
+             the TiSpeech.Host/native-DLL path stays Windows/x86-only and is
+             gated below via _TargetsWindows rather than via the TFM. -->
+        <TargetFramework>net10.0</TargetFramework>
         <Nullable>enable</Nullable>
-        <ApplicationManifest>app.manifest</ApplicationManifest>
+        <ApplicationManifest Condition="'$(_TargetsWindows)' == 'true'">app.manifest</ApplicationManifest>
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
         <ApplicationIcon>Assets\opentalkit.ico</ApplicationIcon>
     </PropertyGroup>
@@ -22,13 +38,23 @@
         <AvaloniaResource Include="Assets\**"/>
     </ItemGroup>
 
+    <!-- tests/ is a separate test project (OpenTalkIt.Tests) that references
+         this project; without this exclusion the SDK's default **/*.cs glob
+         would also try to compile its xUnit test sources (and its own
+         bin/obj) directly into this WinExe app. -->
+    <ItemGroup>
+        <Compile Remove="tests\**\*.cs"/>
+        <None Remove="tests\**\*.cs"/>
+        <AvaloniaResource Remove="tests\**"/>
+    </ItemGroup>
+
     <!-- Native 32-bit SoftVoice DLLs that TiSpeech.Host loads at runtime via
          SetDllDirectoryW(BaseDirectory/x86). They must sit next to
          TiSpeech.Host.exe in the x86\ folder for both local runs and publish.
          Copied explicitly because None/Link with a subdirectory doesn't
          survive the publish copy pass reliably. -->
     <ItemGroup>
-        <_NativeTiDlls Include="DLLs\*.DLL" Condition="Exists('DLLs')" />
+        <_NativeTiDlls Include="DLLs\*.DLL" Condition="'$(_TargetsWindows)' == 'true' AND Exists('DLLs')" />
     </ItemGroup>
 
     <ItemGroup>
@@ -42,16 +68,26 @@
         </PackageReference>
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.1"/>
         <PackageReference Include="NAudio" Version="2.2.1"/>
+        <!-- Avalonia.Desktop pulls in Avalonia.FreeDesktop (Linux D-Bus
+             clipboard/tray support) which transitively resolved
+             Tmds.DBus.Protocol 0.90.3 — vulnerable per GHSA-xrw6-gwf8-vvr9
+             (fixed in 0.92.0+). Pin it directly so NuGet resolves a patched
+             version regardless of what Avalonia's own dependency range asks
+             for. -->
+        <PackageReference Include="Tmds.DBus.Protocol" Version="0.95.1"/>
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\TiSpeech.Client\TiSpeech.Client.csproj" />
+        <!-- TiSpeech.Client lives one level up, as a sibling of this repo's
+             OpenTalkIt/ folder (see README "Project Structure"). -->
+        <ProjectReference Include="..\TiSpeech.Client\TiSpeech.Client.csproj" />
     </ItemGroup>
 
     <!-- Drop the native SoftVoice DLLs into $(OutDir)x86\ before the x86 host
-         gets copied, so dev-time runs can find TIBASE32.DLL. -->
+         gets copied, so dev-time runs can find TIBASE32.DLL. Windows/x86-only:
+         see _TargetsWindows above. -->
     <Target Name="CopyNativeTiDllsToOutput" BeforeTargets="CopyTiSpeechHost"
-            Condition="'@(_NativeTiDlls)' != ''">
+            Condition="'$(_TargetsWindows)' == 'true' AND '@(_NativeTiDlls)' != ''">
         <Copy SourceFiles="@(_NativeTiDlls)"
               DestinationFolder="$(OutDir)x86\"
               SkipUnchangedFiles="true" />
@@ -60,14 +96,18 @@
     <!-- Build TiSpeech.Host (x86) and copy its output to x86\ next to this exe.
          The native DLLs (TIBASE32.DLL etc.) also belong in that x86\ folder.
          RuntimeIdentifier is cleared so an outer `dotnet publish -r win-x64` does
-         not leak a 64-bit RID into the x86 host project (NETSDK1032). -->
-    <Target Name="CopyTiSpeechHost" AfterTargets="Build">
-        <MSBuild Projects="..\..\TiSpeech.Host\TiSpeech.Host.csproj"
+         not leak a 64-bit RID into the x86 host project (NETSDK1032).
+         Windows/x86-only: TiSpeech.Host wraps a 32-bit native Win32 DLL and
+         cannot build or run on macOS/Linux, so this whole target is skipped
+         unless _TargetsWindows is true (see property above). -->
+    <Target Name="CopyTiSpeechHost" AfterTargets="Build"
+            Condition="'$(_TargetsWindows)' == 'true'">
+        <MSBuild Projects="..\TiSpeech.Host\TiSpeech.Host.csproj"
                  Properties="Configuration=$(Configuration);RuntimeIdentifier=;SelfContained=false;PublishReadyToRun=false;PublishSingleFile=false;PublishTrimmed=false;PublishAot=false"
                  Targets="Restore;Build"
                  BuildInParallel="false" />
         <ItemGroup>
-            <_HostFiles Include="..\..\TiSpeech.Host\bin\$(Configuration)\net10.0-windows\**\*.*" />
+            <_HostFiles Include="..\TiSpeech.Host\bin\$(Configuration)\net10.0-windows\**\*.*" />
         </ItemGroup>
         <Copy SourceFiles="@(_HostFiles)"
               DestinationFolder="$(OutDir)x86\%(RecursiveDir)"
@@ -84,14 +124,18 @@
 
          IsPublishable=true overrides the csproj setting (which is there so that
          solution-level publish skips the host). We also force a clean RID so an
-         outer `publish -r win-x64` doesn't leak into this x86 build. -->
-    <Target Name="PublishTiSpeechHostSelfContained" AfterTargets="Publish">
-        <MSBuild Projects="..\..\TiSpeech.Host\TiSpeech.Host.csproj"
+         outer `publish -r win-x64` doesn't leak into this x86 build.
+         Windows/x86-only: gated on _TargetsWindows, which also honors an
+         explicit `-r win-x64`/`-r win-x86` cross-publish RID even when the
+         build machine itself is macOS/Linux. -->
+    <Target Name="PublishTiSpeechHostSelfContained" AfterTargets="Publish"
+            Condition="'$(_TargetsWindows)' == 'true'">
+        <MSBuild Projects="..\TiSpeech.Host\TiSpeech.Host.csproj"
                  Properties="Configuration=$(Configuration);RuntimeIdentifier=win-x86;SelfContained=true;IsPublishable=true;PublishSingleFile=false;PublishTrimmed=false;PublishAot=false;PublishReadyToRun=false;PublishDir=bin\$(Configuration)\net10.0-windows\win-x86\publish\"
                  Targets="Restore;Publish"
                  BuildInParallel="false" />
         <ItemGroup>
-            <_HostPublishFiles Include="..\..\TiSpeech.Host\bin\$(Configuration)\net10.0-windows\win-x86\publish\**\*.*" />
+            <_HostPublishFiles Include="..\TiSpeech.Host\bin\$(Configuration)\net10.0-windows\win-x86\publish\**\*.*" />
         </ItemGroup>
         <Copy SourceFiles="@(_HostPublishFiles)"
               DestinationFolder="$(PublishDir)x86\%(RecursiveDir)"
@@ -100,9 +144,9 @@
 
     <!-- Same DLL copy for publish: put them next to TiSpeech.Host.exe in the
          published x86\ folder. Without this the engine silently fails to load
-         TIBASE32.DLL on end-user machines. -->
+         TIBASE32.DLL on end-user machines. Windows/x86-only. -->
     <Target Name="CopyNativeTiDllsToPublish" AfterTargets="PublishTiSpeechHostSelfContained"
-            Condition="'@(_NativeTiDlls)' != ''">
+            Condition="'$(_TargetsWindows)' == 'true' AND '@(_NativeTiDlls)' != ''">
         <Copy SourceFiles="@(_NativeTiDlls)"
               DestinationFolder="$(PublishDir)x86\"
               SkipUnchangedFiles="true" />

@@ -7,17 +7,30 @@
              x:Class="OpenTalkIt.Views.Controls.TalkControl"
              x:DataType="vm:TalkControlViewModel">
 
-    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,*,Auto" Margin="12,6">
-        <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
+    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,*,Auto" Margin="12,6">
+        <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
+                Margin="0,0,0,8"
+                Padding="10,6"
+                CornerRadius="10"
+                BorderThickness="2"
+                BorderBrush="{StaticResource Y2kHighlight}"
+                Background="{StaticResource Y2kInk}"
+                IsVisible="{Binding !EngineAvailable}">
+            <TextBlock Classes="y2k" TextWrapping="Wrap"
+                       Foreground="{StaticResource Y2kHighlight}"
+                       Text="{Binding EngineUnavailableReason}"/>
+        </Border>
+
+        <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
                    Classes="y2k" HorizontalAlignment="Left" Margin="4,0,0,4"
                    Text="Type your text here!"/>
 
-        <TextBox Grid.Row="1" Grid.Column="0" Classes="cream"
+        <TextBox Grid.Row="2" Grid.Column="0" Classes="cream"
                  Text="{Binding Text}"
                  MinHeight="80"
                  Margin="0,0,12,0"/>
 
-        <StackPanel Grid.Row="1" Grid.Column="1"
+        <StackPanel Grid.Row="2" Grid.Column="1"
                     Orientation="Vertical"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center">
@@ -33,10 +46,11 @@
                     Content="Export WAV"
                     HorizontalAlignment="Stretch"
                     Margin="0,8,0,0"
-                    Command="{Binding ExportCommand}"/>
+                    Command="{Binding ExportCommand}"
+                    ToolTip.Tip="{Binding ExportUnavailableReason}"/>
         </StackPanel>
 
-        <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+        <Border Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
                 Margin="0,10,0,0"
                 Padding="10,6"
                 CornerRadius="10"

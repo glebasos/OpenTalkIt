@@ -20,12 +20,22 @@ Talk It! was a Windows speech synthesis application from the 1990s powered by th
 
 | Requirement | Detail |
 |---|---|
-| OS | Windows only |
-| Architecture | **x86** — `TIBASE32.DLL` is a 32-bit native DLL; the app is compiled as x86 |
+| OS | The UI (this project) builds and runs on Windows, macOS, and Linux. Speech playback and WAV export currently require **Windows** — see "Cross-Platform Status" below. |
+| Architecture | This project itself is AnyCPU/net10.0. On Windows, speech still depends on `TIBASE32.DLL`, a 32-bit native DLL loaded by a separate x86 host process (`TiSpeech.Host`). |
 | .NET | .NET 10 |
-| Native DLLs | `TIBASE32.DLL`, `TIENG32.DLL`, optionally `TISPAN32.DLL` |
+| Native DLLs (Windows only) | `TIBASE32.DLL`, `TIENG32.DLL`, optionally `TISPAN32.DLL` |
 
 The native DLLs are **not** included. You need an original Talk It! installation.
+
+### Cross-Platform Status (work in progress)
+
+This project is being ported off Windows-only APIs. Current state:
+
+- **UI**: builds and runs on macOS/Linux (plain `net10.0`, no Windows-only APIs, Avalonia's `StorageProvider` for file dialogs).
+- **Speech engine**: still Windows-only. `TiSpeech.Host` wraps the original 32-bit `TIBASE32.DLL` and only runs on Windows/x86. A from-scratch, non-Windows-native reimplementation of the SoftVoice engine is under active development (no Wine/emulation shim, and no alternative/system voice fallback is planned as a substitute). Until that lands, launching this app on macOS/Linux shows a "speech engine isn't available on this platform yet" message and disables Talk/Export.
+- **WAV export**: depends on the speech engine being available, and additionally uses Windows-only WASAPI loopback capture (via NAudio) to record system audio. This has no cross-platform implementation yet either; the Export button is disabled with an explanatory tooltip on non-Windows.
+
+On Windows, functionality is unchanged from before this work started.
 
 ## Getting Started
 

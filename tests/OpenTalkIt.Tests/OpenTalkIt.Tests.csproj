@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!-- Small, dependency-light regression suite for the cross-platform UI
+         changes (engine-availability gating, WAV export platform guard).
+         Deliberately plain net10.0 — no Avalonia UI bootstrap, no real
+         TiSpeech.Host process is ever launched by these tests: TiSpeechClient
+         instances are constructed but Open() is never called, and view-model
+         constructors are exercised directly with explicit engineAvailable/
+         engineErrorMessage values instead. -->
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+        <IsPublishable>false</IsPublishable>
+        <NoWarn>$(NoWarn);CS8002</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1"/>
+        <PackageReference Include="xunit" Version="2.9.3"/>
+        <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- Reuses the actual production view models / services instead of
+             re-implementing their logic in the test project. -->
+        <ProjectReference Include="..\..\OpenTalkIt.csproj"/>
+    </ItemGroup>
+
+</Project>

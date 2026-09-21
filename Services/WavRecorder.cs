@@ -24,8 +24,24 @@ public sealed class WavRecorder : IDisposable
     private MMDevice? _device;
     private bool? _previousMute;
 
+    /// <summary>
+    /// NAudio's WASAPI loopback capture (and the endpoint-mute APIs used for
+    /// silent playback) are Windows-only — there is no macOS/Linux
+    /// implementation in NAudio. Callers should check this before
+    /// constructing/using <see cref="WavRecorder"/>; see
+    /// <c>TalkControlViewModel.IsExportSupported</c>, which already gates the
+    /// UI's Export command on it. This throws rather than silently no-op'ing
+    /// so a future caller that forgets the check fails loudly instead of
+    /// producing an empty/missing WAV file.
+    /// </summary>
+    public static bool IsSupported => OperatingSystem.IsWindows();
+
     public void Start(string filePath, bool silentPlayback = false)
     {
+        if (!IsSupported)
+            throw new PlatformNotSupportedException(
+                "WavRecorder uses WASAPI loopback capture (NAudio), which is only available on Windows.");
+
         using (var enumerator = new MMDeviceEnumerator())
         {
             _device = enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);

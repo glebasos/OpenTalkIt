@@ -3,3 +3,6 @@ obj/
 /packages/
 riderModule.iml
 /_ReSharper.Caches/
+DLLs/TIBASE32.DLL
+DLLs/TIENG32.DLL
+DLLs/TISPAN32.DLL
