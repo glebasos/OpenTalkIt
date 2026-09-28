@@ -125,7 +125,7 @@ public class SpeechBackendTests
     }
 
     [Fact]
-    public void NativeBackend_OpenAlwaysFailsAndSaysWhy()
+    public void NativeBackend_OpenReportsPlaybackReadiness()
     {
         using var backend = new NativeTiSpeechBackend();
         string? raised = null;
@@ -133,36 +133,33 @@ public class SpeechBackendTests
 
         var opened = backend.Open(TiLanguageFlags.English);
 
-        Assert.False(opened);
-        Assert.False(backend.IsOpen);
-        Assert.False(string.IsNullOrWhiteSpace(raised));
-        Assert.Equal(backend.UnavailableReason, raised);
+        Assert.Equal(opened, backend.IsOpen);
+        Assert.Equal(opened, backend.Capabilities.HasFlag(TiEngineCapabilities.Synthesis));
+        if (opened)
+        {
+            Assert.Null(raised);
+            Assert.Null(backend.UnavailableReason);
+        }
+        else
+        {
+            Assert.False(string.IsNullOrWhiteSpace(raised));
+            Assert.Equal(backend.UnavailableReason, raised);
+        }
     }
 
     [Fact]
     public void NativeBackend_UnavailableReason_DistinguishesMissingLibraryFromMissingSynthesis()
     {
         using var backend = new NativeTiSpeechBackend();
-        var reason = backend.UnavailableReason!;
-
-        if (TiSpeechNative.IsAvailable)
-        {
-            // The loaded library still cannot speak; only advertise a phoneme
-            // preview when language data is actually available.
-            Assert.Contains("TISPEECH_E_NOTIMPL", reason, StringComparison.Ordinal);
-            if (TiSpeechNative.Languages != 0)
-                Assert.Contains("Phonemes", reason, StringComparison.Ordinal);
-            else
-                Assert.Contains("no letter-to-sound language data", reason, StringComparison.Ordinal);
-        }
+        using var player = new SystemPcmPlayer();
+        if (TiSpeechNative.Capabilities.HasFlag(TiEngineCapabilities.Synthesis))
+            Assert.Equal(player.UnavailableReason, backend.UnavailableReason);
         else
-        {
-            Assert.Equal(TiSpeechNative.UnavailableReason, reason);
-        }
+            Assert.False(string.IsNullOrWhiteSpace(backend.UnavailableReason));
     }
 
     [Fact]
-    public void NativeBackend_Speak_ReportsFailureAndProducesNoAudio()
+    public void NativeBackend_SpeakBeforeOpen_ReportsFailureAndProducesNoAudio()
     {
         using var backend = new NativeTiSpeechBackend();
         string? raised = null;
@@ -177,7 +174,7 @@ public class SpeechBackendTests
         Assert.False(started);                 // nothing ever started speaking
         Assert.True(completed);                // but an awaiting caller is released
         Assert.False(string.IsNullOrWhiteSpace(raised));
-        Assert.Contains("no audio", raised!, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Open", raised!, StringComparison.Ordinal);
         Assert.False(backend.IsSpeaking);
     }
 
@@ -211,7 +208,7 @@ public class SpeechBackendTests
     // ── Factory ──────────────────────────────────────────────────────────────
 
     [Fact]
-    public void Factory_ProducesABackendThatCannotSpeakHere_AndExplainsWhy()
+    public void Factory_SelectsNativePlaybackWhenAvailable()
     {
         // Skipped on Windows on purpose: there the factory would start the real
         // 32-bit TiSpeech.Host child process, which this suite deliberately
@@ -221,11 +218,15 @@ public class SpeechBackendTests
 
         var selection = SpeechBackendFactory.Create(TiLanguageFlags.English);
 
-        Assert.False(selection.SpeechOpened);
         Assert.NotNull(selection.Speech);
         Assert.NotNull(selection.Phonemes);
-        Assert.False(selection.Speech.Capabilities.HasFlag(TiEngineCapabilities.Synthesis));
-        Assert.False(string.IsNullOrWhiteSpace(selection.SpeechError));
+        using var player = new SystemPcmPlayer();
+        var expected = TiSpeechNative.Capabilities.HasFlag(TiEngineCapabilities.Synthesis)
+                       && player.UnavailableReason is null;
+        Assert.Equal(expected, selection.SpeechOpened);
+        Assert.Equal(expected, selection.Speech.Capabilities.HasFlag(TiEngineCapabilities.Synthesis));
+        if (expected) Assert.Null(selection.SpeechError);
+        else Assert.False(string.IsNullOrWhiteSpace(selection.SpeechError));
 
         selection.Speech.Dispose();
     }

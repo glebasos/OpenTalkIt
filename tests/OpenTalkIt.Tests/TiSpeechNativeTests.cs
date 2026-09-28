@@ -15,35 +15,40 @@ namespace OpenTalkIt.Tests;
 ///   * library present — then the letter-to-sound assertions actually execute
 ///     against the real rule tables.
 ///
-/// The invariants that hold unconditionally (no synthesis, ever; no audio
-/// buffer on failure; availability and reason are mutually exclusive) are
-/// asserted with no branch at all, because those are the project's honesty
-/// guarantees and must never depend on the machine.
+/// Synthesis assertions follow the compiled capability: a complete build must
+/// return PCM, while missing data or a missing library must report failure.
 /// </summary>
 public class TiSpeechNativeTests
 {
     // ── Unconditional honesty invariants ─────────────────────────────────────
 
     [Fact]
-    public void Capabilities_NeverReportSynthesis()
+    public void Synthesize_MatchesTheAdvertisedCapability()
     {
-        // capi.c deliberately never sets TISPEECH_CAP_SYNTHESIS: the
-        // phoneme-to-frame stage is not reconstructed. If this ever fails,
-        // either the native side started claiming something it cannot do, or
-        // synthesis genuinely landed — in which case this test is the place to
-        // find out and update the UI gating deliberately.
-        Assert.False(TiSpeechNative.Capabilities.HasFlag(TiEngineCapabilities.Synthesis));
+        var result = TiSpeechNative.Synthesize(TiLanguage.English, " /HEH5LOW WER5LD");
+        if (TiSpeechNative.Capabilities.HasFlag(TiEngineCapabilities.Synthesis))
+        {
+            Assert.True(result.IsSuccess, result.Status.Describe());
+            Assert.NotNull(result.Samples);
+            Assert.True(result.Samples.Length >= 8192);
+            Assert.Equal(11025, result.SampleRate);
+        }
+        else
+        {
+            Assert.False(result.IsSuccess);
+            Assert.Null(result.Samples);
+            Assert.Equal(0, result.SampleRate);
+            Assert.Contains(result.Status, new[] { TiStatus.NotImplemented, TiStatus.LibraryUnavailable });
+        }
     }
 
     [Fact]
-    public void Synthesize_NeverSucceedsAndNeverReturnsABuffer()
+    public void Synthesize_InvalidPhonemesNeverReturnAudio()
     {
-        var result = TiSpeechNative.Synthesize(TiLanguage.English, "DHAX KWIHK BROWN FAAKS");
-
+        var result = TiSpeechNative.Synthesize(TiLanguage.English, " XYZ");
         Assert.False(result.IsSuccess);
-        Assert.Null(result.Samples); // not an empty buffer a careless caller could "play"
+        Assert.Null(result.Samples);
         Assert.Equal(0, result.SampleRate);
-        Assert.Contains(result.Status, new[] { TiStatus.NotImplemented, TiStatus.LibraryUnavailable });
     }
 
     [Fact]
@@ -157,11 +162,11 @@ public class TiSpeechNativeTests
             TiLanguage.English, "the quick brown fox jumps over the lazy dog");
 
         Assert.True(result.IsSuccess, result.Message);
-        Assert.Equal("DHAX KWIHK BROWN FAAKS JAH5MPS OWVER DHAX LEYZIY DAAG", result.Phonemes);
+        Assert.Equal(" DHAX KWIH5K BRAW4N FAA5KS JAH5MPS OW5VER DHAX LEY5ZIY DAA5G", result.Phonemes);
     }
 
     [Fact]
-    public void TextToPhonemes_IsCaseInsensitiveAndToleratesExtraWhitespace()
+    public void TextToPhonemes_PreservesOriginalTabAndStressBehavior()
     {
         if (!TiSpeechNative.SupportsLanguage(TiLanguage.English)) return;
 
@@ -169,22 +174,24 @@ public class TiSpeechNativeTests
         var messy = TiSpeechNative.TextToPhonemes(TiLanguage.English, "  HELLO\tworld  ");
 
         Assert.True(lower.IsSuccess, lower.Message);
-        Assert.Equal(lower.Phonemes, messy.Phonemes);
+        Assert.True(messy.IsSuccess, messy.Message);
+        Assert.Equal(" /HEH5LOW WER5LD", lower.Phonemes);
+        Assert.Equal(" /HEHLOW WER5LD", messy.Phonemes);
     }
 
     [Fact]
-    public void TextToPhonemes_HandlesLongInputByGrowingTheBuffer()
+    public void TextToPhonemes_RejectsTheOriginalSilentTruncationLimit()
     {
         if (!TiSpeechNative.SupportsLanguage(TiLanguage.English)) return;
 
-        // Far longer than the wrapper's initial buffer guess, so this exercises
-        // the TISPEECH_E_BUFFERFULL retry loop rather than the happy path.
+        // The original front end silently produces nothing above 514 bytes.
         var text = string.Join(' ', System.Linq.Enumerable.Repeat("synthesizer", 400));
 
         var result = TiSpeechNative.TextToPhonemes(TiLanguage.English, text);
 
-        Assert.True(result.IsSuccess, result.Message);
-        Assert.Equal(400, result.Phonemes.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length);
+        Assert.Equal(TiStatus.BadParam, result.Status);
+        Assert.Empty(result.Phonemes);
+        Assert.Contains("514", result.Message);
     }
 
     // ── Input validation (works with or without the library) ─────────────────

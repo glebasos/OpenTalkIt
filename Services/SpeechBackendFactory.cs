@@ -30,8 +30,9 @@ public sealed record SpeechBackendSelection(
 ///     speech, Windows only, because it runs a PE binary against the original
 ///     TIBASE32.DLL.
 ///   * <see cref="NativeTiSpeechBackend"/> — the from-scratch portable
-///     reconstruction. Converts text to phonemes today on macOS/Linux/Windows;
-///     cannot synthesise audio yet and says so.
+///     reconstruction. Converts text to phonemes on macOS/Linux/Windows and,
+///     when built with TIBASE32 + TIENG32 data, synthesises English audio
+///     sample-exact with the original and plays it via the system player.
 ///
 /// This class does not ask what operating system it is on. It asks each
 /// candidate to open and takes the first one that says yes, which is the same
@@ -97,7 +98,7 @@ public static class SpeechBackendFactory
         // rest of the UI still sees accurate capabilities) and report every
         // reason we collected rather than picking one and hoping it is the one
         // this user needed — on Windows the useful message is about the missing
-        // host, on macOS it is about the unimplemented synthesis stage.
+        // host, on macOS it is about missing synthesis data or audio player.
         var best = candidates
             .OrderByDescending(c => BitOperations.PopCount((uint)c.Capabilities))
             .First();

@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel;
 using OpenTalkIt.Models;
 using OpenTalkIt.Services;
@@ -5,7 +6,7 @@ using TiSpeech;
 
 namespace OpenTalkIt.ViewModels;
 
-public partial class MainWindowViewModel : ViewModelBase
+public partial class MainWindowViewModel : ViewModelBase, IDisposable
 {
     public PersonalityControlViewModel PersonalityVM { get; }
     public ParameterControlViewModel ParameterVM { get; }
@@ -98,4 +99,14 @@ public partial class MainWindowViewModel : ViewModelBase
         if (e.PropertyName == nameof(ParameterControlViewModel.Language))
             TalkVM.NotifyLanguageChanged();
     }
+    public void Dispose()
+    {
+        PersonalityVM.PropertyChanged -= OnPersonalitySelectionChanged;
+        ParameterVM.PropertyChanged -= OnParameterChanged;
+        TalkVM.Dispose();
+        Engine.Dispose();
+        if (!ReferenceEquals(PhonemeProvider, Engine) && PhonemeProvider is IDisposable provider)
+            provider.Dispose();
+    }
+
 }

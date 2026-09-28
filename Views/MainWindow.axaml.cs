@@ -10,5 +10,6 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         DataContext = new MainWindowViewModel(new MainWindowExportService(this));
+        Closed += (_, _) => (DataContext as MainWindowViewModel)?.Dispose();
     }
 }

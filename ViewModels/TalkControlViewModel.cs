@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -10,41 +11,23 @@ using TiSpeech;
 
 namespace OpenTalkIt.ViewModels;
 
-public partial class TalkControlViewModel : ViewModelBase
+public partial class TalkControlViewModel : ViewModelBase, IDisposable
 {
     private readonly ITiSpeechBackend _engine;
     private readonly Func<TalkParameters> _getParameters;
     private readonly IExportService? _exportService;
 
-    /// <summary>
-    /// WAV export captures system audio via NAudio's WASAPI loopback, which is
-    /// a Windows-only API (no macOS/Linux equivalent shipped by NAudio). This
-    /// guards the Export command until a cross-platform capture path (or a
-    /// direct-to-file export from the engine) exists — see OpenTalkIt README /
-    /// port notes. It intentionally does not fall back to any other backend.
-    ///
-    /// Unlike the speech gate below, this one legitimately stays an OS check:
-    /// the missing thing here is a platform audio API, not an engine
-    /// capability, so there is nothing to ask the backend about.
-    /// </summary>
-    public bool IsExportSupported { get; } = WavRecorder.IsSupported;
+    private readonly CancellationTokenSource _lifetime = new();
 
-    /// <summary>Bindable reason shown as a tooltip when export is unavailable; null on Windows.</summary>
-    public string? ExportUnavailableReason => IsExportSupported
-        ? null
-        : "WAV export uses Windows audio capture (WASAPI loopback) and isn't available on this platform yet.";
+    /// <summary>Native PCM export works without playback or loopback capture.</summary>
+    public bool IsExportSupported => (_engine as ITiPcmRenderer)?.CanRender == true || WavRecorder.IsSupported;
+    public string? ExportUnavailableReason => IsExportSupported ? null
+        : "This backend has no direct WAV export, and system audio capture is unavailable.";
 
     private readonly string? _engineErrorMessage;
 
     /// <summary>
-    /// Whether the selected backend actually opened — i.e. whether calling
-    /// <see cref="ITiSpeechBackend.Speak"/> will produce the original engine's
-    /// audio. On Windows this is the 32-bit SoftVoice host; on macOS/Linux it is
-    /// false today because the portable reconstruction's phoneme-to-audio stage
-    /// is not written yet (<c>tispeech_synthesize()</c> returns
-    /// TISPEECH_E_NOTIMPL) and no substitute voice is used by design.
-    ///
-    /// The UI must not claim speech works when this is false.
+    /// Whether the selected backend opened for audio playback.
     /// </summary>
     public bool EngineAvailable { get; }
 
@@ -104,6 +87,11 @@ public partial class TalkControlViewModel : ViewModelBase
     private static string DescribeCapabilities(TiEngineCapabilities capabilities) =>
         capabilities == TiEngineCapabilities.None ? "no capabilities" : capabilities.ToString();
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasStatusMessage))]
+    private string? _statusMessage;
+    public bool HasStatusMessage => !string.IsNullOrWhiteSpace(StatusMessage);
+
     [ObservableProperty] private string _text = string.Empty;
     [ObservableProperty] private bool _isSpeaking;
     [ObservableProperty] private bool _isExporting;
@@ -131,56 +119,84 @@ public partial class TalkControlViewModel : ViewModelBase
     private async Task ExportAsync()
     {
         if (_exportService is null || !IsExportSupported) return;
-
-        var path = await _exportService.PickSaveFileAsync(SuggestFileName());
-        if (string.IsNullOrEmpty(path)) return;
-
         IsExporting = true;
+        StatusMessage = null;
         try
         {
-            using var recorder = new WavRecorder();
-            recorder.Start(path, silentPlayback: true);
-
-            // Let WASAPI loopback prime before playback so we don't clip the attack.
-            await Task.Delay(150);
-
-            await SpeakAndWaitAsync();
-
-            // Small tail so the final syllable isn't truncated.
-            await Task.Delay(250);
-            await recorder.StopAsync();
-
+            var path = await _exportService.PickSaveFileAsync(SuggestFileName());
+            if (string.IsNullOrEmpty(path)) return;
+            if (_engine is ITiPcmRenderer { CanRender: true } renderer)
+            {
+                ApplyParameters();
+                var audio = await renderer.RenderAsync(Text, _lifetime.Token);
+                if (!audio.IsSuccess)
+                    throw new InvalidOperationException(audio.Message ?? audio.Status.Describe());
+                // Write beside the destination and replace it only when the WAV
+                // is complete. A synthesis or write failure preserves the old file.
+                var temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+                try
+                {
+                    using (var file = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write))
+                        PcmWaveFile.Write(file, audio.Samples!, audio.SampleRate);
+                    _lifetime.Token.ThrowIfCancellationRequested();
+                    File.Move(temporary, path, overwrite: true);
+                }
+                finally { if (File.Exists(temporary)) File.Delete(temporary); }
+            }
+            else
+            {
+                using var recorder = new WavRecorder();
+                recorder.Start(path, silentPlayback: true);
+                await Task.Delay(150, _lifetime.Token);
+                await SpeakAndWaitAsync();
+                await Task.Delay(250, _lifetime.Token);
+                await recorder.StopAsync();
+                if (StatusMessage is not null) return;
+            }
             var folder = Path.GetDirectoryName(path);
-            if (!string.IsNullOrEmpty(folder))
-                _exportService.RememberFolder(folder);
+            if (!string.IsNullOrEmpty(folder)) _exportService.RememberFolder(folder);
         }
-        finally
-        {
-            IsExporting = false;
-        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
+        catch (Exception ex) { StatusMessage = ex.Message; }
+        finally { IsExporting = false; }
     }
 
-    private async Task SpeakAndWaitAsync()
+    private void ApplyParameters()
     {
         var p = _getParameters();
-
         _engine.SetPersonality(p.Personality?.Personality ?? TiPersonality.Male);
         _engine.SetPitch(p.Pitch);
         _engine.SetRate(p.Speed);
         _engine.SetLanguage(p.Language);
         _engine.SetVoicingMode(p.VocalEffort);
         _engine.SetF0Style(p.PitchQuality);
+    }
 
-        _speakTcs = new TaskCompletionSource();
+    private async Task SpeakAndWaitAsync()
+    {
+        StatusMessage = null;
+        ApplyParameters();
+        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        string? error = null;
+        void OnCompleted(object? sender, EventArgs args) => completion.TrySetResult();
+        void OnError(object? sender, string message) => error = message;
+        _speakTcs = completion;
         _engine.SpeakCompleted += OnCompleted;
-        _engine.Speak(Text);
-
-        await _speakTcs.Task;
-
-        void OnCompleted(object? s, EventArgs e)
+        _engine.Error += OnError;
+        using var cancelled = _lifetime.Token.Register(() => completion.TrySetCanceled(_lifetime.Token));
+        try
+        {
+            _engine.Speak(Text);
+            await completion.Task;
+            StatusMessage = error;
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
+        catch (Exception ex) { StatusMessage = ex.Message; }
+        finally
         {
             _engine.SpeakCompleted -= OnCompleted;
-            _speakTcs?.TrySetResult();
+            _engine.Error -= OnError;
+            if (ReferenceEquals(_speakTcs, completion)) _speakTcs = null;
         }
     }
 
@@ -195,7 +211,7 @@ public partial class TalkControlViewModel : ViewModelBase
 
     private bool CanTalk() => EngineAvailable && !IsSpeaking && !IsExporting && !string.IsNullOrWhiteSpace(Text);
     private bool CanStop() => IsSpeaking && !IsExporting;
-    private bool CanExport() => EngineAvailable && _exportService is not null && IsExportSupported && !IsSpeaking && !IsExporting && !string.IsNullOrWhiteSpace(Text);
+    private bool CanExport() => (EngineAvailable || (_engine as ITiPcmRenderer)?.CanRender == true) && _exportService is not null && IsExportSupported && !IsSpeaking && !IsExporting && !string.IsNullOrWhiteSpace(Text);
 
     private string SuggestFileName()
     {
@@ -232,4 +248,10 @@ public partial class TalkControlViewModel : ViewModelBase
     /// stale readout would be wrong rather than merely old.
     /// </summary>
     public void NotifyLanguageChanged() => PhonemeVM?.NotifyInputChanged();
+    public void Dispose()
+    {
+        _lifetime.Cancel();
+        _engine.Stop();
+    }
+
 }
