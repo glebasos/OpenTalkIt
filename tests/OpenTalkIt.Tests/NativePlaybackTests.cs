@@ -21,7 +21,7 @@ public class NativePlaybackTests
         public string? UnavailableReason => null;
         public Func<string, TiVoiceOptions, TiSynthesisResult> Generate { get; set; } =
             (_, _) => new(TiStatus.Ok, [128, 140, 120], 11025);
-        public TiSynthesisResult Render(TiLanguage language, string text, TiVoiceOptions options) => Generate(text, options);
+        public TiSynthesisResult Render(TiLanguage language, string text, TiVoiceOptions options, TiUserDictionary? dictionary) => Generate(text, options);
     }
 
     private sealed class Player : IPcmPlayer

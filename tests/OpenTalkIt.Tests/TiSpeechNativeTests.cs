@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using TiSpeech;
 using Xunit;
 
@@ -20,6 +21,74 @@ namespace OpenTalkIt.Tests;
 /// </summary>
 public class TiSpeechNativeTests
 {
+    // ── User dictionaries ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// A hand-built "SVXF" file (format in native/include/tispeech/userdict.h):
+    /// HELLO -> " XYZZY" in bucket 'H', every other bucket at the terminator.
+    /// </summary>
+    private static byte[] SyntheticDictionary()
+    {
+        var word = "HELLO"u8;
+        var phonemes = " XYZZY"u8;
+        int terminator = 3 + word.Length + phonemes.Length, tableLength = terminator + 3;
+        var file = new byte[144 + tableLength];
+        "SVXF"u8.CopyTo(file);
+        BitConverter.TryWriteBytes(file.AsSpan(24), 1);
+        BitConverter.TryWriteBytes(file.AsSpan(28), tableLength);
+        for (var bucket = 0; bucket < 28; bucket++)
+            BitConverter.TryWriteBytes(file.AsSpan(32 + 4 * bucket), bucket == 'H' - 'A' ? 0 : terminator);
+        file[144] = (byte)(word.Length + phonemes.Length);
+        file[145] = (byte)word.Length;
+        file[146] = 0x02;
+        word.CopyTo(file.AsSpan(147));
+        phonemes.CopyTo(file.AsSpan(147 + word.Length));
+        return file;
+    }
+
+    [Fact]
+    public void UserDictionary_IsConsultedBeforeTheBuiltInRules()
+    {
+        if (!TiSpeechNative.IsAvailable || !TiSpeechNative.SupportsLanguage(TiLanguage.English))
+            return;
+        using var dictionary = TiUserDictionary.FromBytes(SyntheticDictionary());
+        var result = TiSpeechNative.TextToPhonemes(TiLanguage.English, "hello world", dictionary);
+        Assert.True(result.IsSuccess, result.Message);
+        Assert.Contains("XYZZY", result.Phonemes);
+        Assert.DoesNotContain("HEH5LOW", result.Phonemes);
+        Assert.Contains("HEH5LOW", TiSpeechNative.TextToPhonemes(TiLanguage.English, "hello world").Phonemes);
+    }
+
+    [Fact]
+    public void UserDictionary_RejectsMalformedFiles()
+    {
+        if (!TiSpeechNative.IsAvailable)
+            return;
+        var bad = SyntheticDictionary();
+        bad[0] = (byte)'X';
+        Assert.Throws<InvalidDataException>(() => TiUserDictionary.FromBytes(bad));
+        Assert.Throws<InvalidDataException>(() => TiUserDictionary.FromBytes(SyntheticDictionary().AsSpan(0, 100)));
+    }
+
+    [Fact]
+    public void NativeBackend_UserDictionary_AppliesToPhonemesAndUnloads()
+    {
+        if (!TiSpeechNative.IsAvailable || !TiSpeechNative.SupportsLanguage(TiLanguage.English))
+            return;
+        var path = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllBytes(path, SyntheticDictionary());
+            using var backend = new NativeTiSpeechBackend();
+            backend.LoadUserDictionary(path);
+            Assert.Contains("XYZZY", backend.TextToPhonemes(TiLanguage.English, "hello").Phonemes);
+            backend.UnloadUserDictionary();
+            Assert.Null(backend.UserDictionary);
+            Assert.DoesNotContain("XYZZY", backend.TextToPhonemes(TiLanguage.English, "hello").Phonemes);
+        }
+        finally { File.Delete(path); }
+    }
+
     // ── Unconditional honesty invariants ─────────────────────────────────────
 
     [Fact]
