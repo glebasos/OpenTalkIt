@@ -18,6 +18,7 @@ public class NativePlaybackTests
     {
         public TiEngineCapabilities Capabilities => TiEngineCapabilities.Synthesis | TiEngineCapabilities.TextToPhonemes;
         public TiLanguageFlags Languages => TiLanguageFlags.English;
+        public TiLanguageFlags SynthesisLanguages => TiLanguageFlags.English;
         public string? UnavailableReason => null;
         public Func<string, TiVoiceOptions, TiSynthesisResult> Generate { get; set; } =
             (_, _) => new(TiStatus.Ok, [128, 140, 120], 11025);
