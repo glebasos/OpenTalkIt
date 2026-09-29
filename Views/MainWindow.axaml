@@ -1,71 +1,11 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:vm="using:OpenTalkIt.ViewModels"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:controls="clr-namespace:OpenTalkIt.Views.Controls"
-        mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="620"
+        xmlns:views="clr-namespace:OpenTalkIt.Views"
         x:Class="OpenTalkIt.Views.MainWindow"
-        x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/opentalkit.ico"
         Title="OpenTalkIt"
         Width="780" Height="640"
         MinWidth="720" MinHeight="600"
         Background="#1D0E3C">
-
-    <Design.DataContext>
-        <vm:MainWindowViewModel />
-    </Design.DataContext>
-
-    <Grid>
-        <!-- Animated cloud shader background -->
-        <controls:CloudShaderControl/>
-
-        <!-- Purple chrome frame -->
-        <Border Margin="14"
-                CornerRadius="22"
-                BorderThickness="3"
-                BorderBrush="{StaticResource Y2kHighlight}"
-                Background="{StaticResource Y2kChrome}"
-                BoxShadow="0 6 24 0 #80000000">
-            <Border CornerRadius="18"
-                    BorderThickness="2"
-                    BorderBrush="#2A134E"
-                    Margin="6"
-                    Background="#331956">
-                <Grid RowDefinitions="Auto,Auto,*" Margin="10">
-
-                    <Border Grid.Row="0"
-                            CornerRadius="14"
-                            BorderThickness="2"
-                            BorderBrush="#8562C5"
-                            Background="{StaticResource Y2kPanel}"
-                            Padding="8"
-                            Margin="0,0,0,8">
-                        <controls:PersonalityControl DataContext="{Binding PersonalityVM}"/>
-                    </Border>
-
-                    <Border Grid.Row="1"
-                            CornerRadius="14"
-                            BorderThickness="2"
-                            BorderBrush="#8562C5"
-                            Background="{StaticResource Y2kPanel}"
-                            Padding="6"
-                            Margin="0,0,0,8">
-                        <controls:ParameterControl DataContext="{Binding ParameterVM}"/>
-                    </Border>
-
-                    <Border Grid.Row="2"
-                            CornerRadius="14"
-                            BorderThickness="2"
-                            BorderBrush="#8562C5"
-                            Background="{StaticResource Y2kPanel}"
-                            Padding="6">
-                        <controls:TalkControl DataContext="{Binding TalkVM}"/>
-                    </Border>
-
-                </Grid>
-            </Border>
-        </Border>
-    </Grid>
+    <views:MainView/>
 </Window>

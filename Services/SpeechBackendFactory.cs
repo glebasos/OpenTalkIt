@@ -37,11 +37,12 @@ public static class SpeechBackendFactory
     /// </summary>
     public static SpeechBackendSelection Create(TiLanguageFlags languages)
     {
-        var native = new NativeTiSpeechBackend(OperatingSystem.IsWindows()
-            ? new WindowsPcmPlayer() : new SystemPcmPlayer());
+        var native = new NativeTiSpeechBackend(CreatePlayer());
 
         // Prefer the portable engine; it needs neither the original DLLs nor an x86 host.
-        ITiSpeechBackend[] candidates = [native, new TiSpeechClient()];
+        // The x86 host fallback exists only on Windows; elsewhere it only adds a
+        // second, irrelevant failure message.
+        ITiSpeechBackend[] candidates = OperatingSystem.IsAndroid() ? [native] : [native, new TiSpeechClient()];
 
         var failures = new List<string>();
         foreach (var candidate in candidates)
@@ -98,6 +99,15 @@ public static class SpeechBackendFactory
             : null;
 
         return new SpeechBackendSelection(best, native, false, error);
+    }
+
+    private static IPcmPlayer CreatePlayer()
+    {
+#if ANDROID
+        return new Android.AndroidPcmPlayer();
+#else
+        return OperatingSystem.IsWindows() ? new WindowsPcmPlayer() : new SystemPcmPlayer();
+#endif
     }
 
     /// <summary>

@@ -25,6 +25,9 @@
              the TiSpeech.Host/native-DLL path stays Windows/x86-only and is
              gated below via _TargetsWindows rather than via the TFM. -->
         <TargetFramework>net10.0</TargetFramework>
+        <!-- Android is opt-in (dist/build-android.sh) so desktop builds and
+             the tests never need the android workload. -->
+        <TargetFramework Condition="'$(OpenTalkItAndroid)' == 'true'">net10.0-android</TargetFramework>
         <Nullable>enable</Nullable>
         <ApplicationManifest Condition="'$(_TargetsWindows)' == 'true'">app.manifest</ApplicationManifest>
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
@@ -44,6 +47,46 @@
     <ItemGroup>
         <AvaloniaResource Include="Assets\**"/>
     </ItemGroup>
+
+    <!-- ===================================================================
+         Android head. Same sources and XAML; Program.cs is the desktop entry
+         point, Platforms/Android holds the activity and the AudioTrack
+         player. libtispeech.so comes prebuilt from dist/build-native.sh
+         (zig, no NDK): the TiSpeech CMake integration only builds for the
+         host.
+         =================================================================== -->
+    <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-android'">
+        <OutputType>Exe</OutputType>
+        <SupportedOSPlatformVersion>23</SupportedOSPlatformVersion>
+        <ApplicationId>io.github.glebasos.opentalkit</ApplicationId>
+        <ApplicationTitle>OpenTalkIt</ApplicationTitle>
+        <ApplicationVersion>1</ApplicationVersion>
+        <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+        <RuntimeIdentifiers>android-arm64;android-x64</RuntimeIdentifiers>
+        <AndroidPackageFormat>apk</AndroidPackageFormat>
+        <AndroidEnableProfiledAot>false</AndroidEnableProfiledAot>
+        <AndroidManifest>Platforms\Android\AndroidManifest.xml</AndroidManifest>
+        <MonoAndroidResourcePrefix>Platforms\Android\Resources</MonoAndroidResourcePrefix>
+        <!-- The Android SDK globs every *.so under the project; tests/bin has plenty. -->
+        <DefaultItemExcludes>$(DefaultItemExcludes);tests\**</DefaultItemExcludes>
+        <OpenTalkItAndroidNativeDir Condition="'$(OpenTalkItAndroidNativeDir)' == ''">$(MSBuildThisFileDirectory)..\dist\native</OpenTalkItAndroidNativeDir>
+    </PropertyGroup>
+    <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-android'">
+        <Compile Remove="Program.cs;NativeLibraryDirectory.cs"/>
+        <AndroidResource Include="Assets\opentalkit.png" Link="Platforms\Android\Resources\drawable\icon.png"/>
+        <AndroidNativeLibrary Include="$(OpenTalkItAndroidNativeDir)\android-arm64\libtispeech.so" Abi="arm64-v8a"/>
+        <AndroidNativeLibrary Include="$(OpenTalkItAndroidNativeDir)\android-x64\libtispeech.so" Abi="x86_64"/>
+    </ItemGroup>
+    <ItemGroup Condition="'$(TargetFramework)' != 'net10.0-android'">
+        <Compile Remove="Platforms\Android\**"/>
+        <None Remove="Platforms\Android\**"/>
+        <AndroidResource Remove="Platforms\Android\**"/>
+    </ItemGroup>
+    <Target Name="CheckAndroidNativeLibraries" BeforeTargets="Build"
+            Condition="'$(TargetFramework)' == 'net10.0-android'">
+        <Error Condition="!Exists('%(AndroidNativeLibrary.Identity)')"
+               Text="Missing %(AndroidNativeLibrary.Identity). Run dist/build-native.sh android-arm64 and android-x64 first (dist/build-android.sh does)." />
+    </Target>
 
     <!-- tests/ is a separate test project (OpenTalkIt.Tests) that references
          this project; without this exclusion the SDK's default **/*.cs glob
@@ -67,7 +110,8 @@
     <ItemGroup>
         <!-- 12.0.1 fixes the macOS save-picker callback crash (AvaloniaUI/Avalonia#21104). -->
         <PackageReference Include="Avalonia" Version="12.0.1"/>
-        <PackageReference Include="Avalonia.Desktop" Version="12.0.1"/>
+        <PackageReference Include="Avalonia.Desktop" Version="12.0.1" Condition="'$(TargetFramework)' != 'net10.0-android'"/>
+        <PackageReference Include="Avalonia.Android" Version="12.0.1" Condition="'$(TargetFramework)' == 'net10.0-android'"/>
         <PackageReference Include="Avalonia.Themes.Fluent" Version="12.0.1"/>
         <PackageReference Include="Avalonia.Fonts.Inter" Version="12.0.1"/>
         <PackageReference Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.0">
@@ -82,7 +126,7 @@
              (fixed in 0.92.0+). Pin it directly so NuGet resolves a patched
              version regardless of what Avalonia's own dependency range asks
              for. -->
-        <PackageReference Include="Tmds.DBus.Protocol" Version="0.95.1"/>
+        <PackageReference Include="Tmds.DBus.Protocol" Version="0.95.1" Condition="'$(TargetFramework)' != 'net10.0-android'"/>
     </ItemGroup>
 
     <ItemGroup>

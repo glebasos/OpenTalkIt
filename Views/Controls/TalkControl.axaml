@@ -7,6 +7,35 @@
              x:Class="OpenTalkIt.Views.Controls.TalkControl"
              x:DataType="vm:TalkControlViewModel">
 
+    <!-- On a narrow MainView the buttons move under the text box. -->
+    <UserControl.Styles>
+        <Style Selector="TextBox#TextInput">
+            <Setter Property="Margin" Value="0,0,12,0"/>
+        </Style>
+        <Style Selector="StackPanel#Buttons">
+            <Setter Property="Grid.Row" Value="2"/>
+            <Setter Property="Grid.Column" Value="1"/>
+        </Style>
+        <Style Selector="StackPanel#SecondaryButtons">
+            <Setter Property="Margin" Value="0,8,0,0"/>
+        </Style>
+        <Style Selector=".narrow TextBox#TextInput">
+            <Setter Property="Margin" Value="0"/>
+            <Setter Property="Grid.ColumnSpan" Value="2"/>
+        </Style>
+        <Style Selector=".narrow StackPanel#Buttons">
+            <Setter Property="Grid.Row" Value="3"/>
+            <Setter Property="Grid.Column" Value="0"/>
+            <Setter Property="Grid.ColumnSpan" Value="2"/>
+            <Setter Property="Orientation" Value="Horizontal"/>
+            <Setter Property="Spacing" Value="12"/>
+            <Setter Property="Margin" Value="0,10,0,0"/>
+        </Style>
+        <Style Selector=".narrow StackPanel#SecondaryButtons">
+            <Setter Property="Margin" Value="0"/>
+        </Style>
+    </UserControl.Styles>
+
     <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,*,Auto,Auto,Auto" Margin="12,6">
         <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
                 Margin="0,0,0,8"
@@ -25,29 +54,28 @@
                    Classes="y2k" HorizontalAlignment="Left" Margin="4,0,0,4"
                    Text="Type your text here!"/>
 
-        <TextBox Grid.Row="2" Grid.Column="0" Classes="cream"
+        <TextBox x:Name="TextInput" Grid.Row="2" Grid.Column="0" Classes="cream"
                  Text="{Binding Text}"
-                 MinHeight="80"
-                 Margin="0,0,12,0"/>
+                 MinHeight="80"/>
 
-        <StackPanel Grid.Row="2" Grid.Column="1"
-                    Orientation="Vertical"
+        <StackPanel x:Name="Buttons"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center">
             <Button Classes="talkit"
                     Content="Talk It!"
                     Command="{Binding TalkCommand}"/>
-            <Button Classes="stop"
-                    Content="Stop"
-                    HorizontalAlignment="Stretch"
-                    Margin="0,8,0,0"
-                    Command="{Binding StopCommand}"/>
-            <Button Classes="stop"
-                    Content="Export WAV"
-                    HorizontalAlignment="Stretch"
-                    Margin="0,8,0,0"
-                    Command="{Binding ExportCommand}"
-                    ToolTip.Tip="{Binding ExportUnavailableReason}"/>
+            <StackPanel x:Name="SecondaryButtons" VerticalAlignment="Center">
+                <Button Classes="stop"
+                        Content="Stop"
+                        HorizontalAlignment="Stretch"
+                        Command="{Binding StopCommand}"/>
+                <Button Classes="stop"
+                        Content="Export WAV"
+                        HorizontalAlignment="Stretch"
+                        Margin="0,8,0,0"
+                        Command="{Binding ExportCommand}"
+                        ToolTip.Tip="{Binding ExportUnavailableReason}"/>
+            </StackPanel>
         </StackPanel>
 
         <TextBlock Grid.Row="5" Grid.ColumnSpan="2" Margin="4,8,4,0"

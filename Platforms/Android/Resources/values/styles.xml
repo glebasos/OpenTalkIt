@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<resources>
+  <style name="OpenTalkIt.Theme" parent="@style/Theme.AppCompat.NoActionBar">
+    <item name="android:windowBackground">@color/opentalkit_background</item>
+    <item name="android:statusBarColor">@color/opentalkit_background</item>
+    <item name="android:navigationBarColor">@color/opentalkit_background</item>
+  </style>
+  <color name="opentalkit_background">#1D0E3C</color>
+</resources>

@@ -6,7 +6,28 @@
              mc:Ignorable="d" d:DesignWidth="720" d:DesignHeight="240"
              x:Class="OpenTalkIt.Views.Controls.PersonalityControl"
              x:DataType="vm:PersonalityControlViewModel">
-    <Grid ColumnDefinitions="Auto,*,Auto">
+    <!-- On a narrow MainView the grid moves under the steppers, 5 rows of 4. -->
+    <UserControl.Styles>
+        <Style Selector="StackPanel#PersonalityPanel">
+            <Setter Property="Grid.Column" Value="1"/>
+        </Style>
+        <Style Selector="UniformGrid#PersonalityGrid">
+            <Setter Property="Rows" Value="4"/>
+            <Setter Property="Columns" Value="5"/>
+        </Style>
+        <Style Selector=".narrow StackPanel#PersonalityPanel">
+            <Setter Property="Grid.Row" Value="1"/>
+            <Setter Property="Grid.Column" Value="0"/>
+            <Setter Property="Grid.ColumnSpan" Value="3"/>
+            <Setter Property="Margin" Value="0,10,0,0"/>
+        </Style>
+        <Style Selector=".narrow UniformGrid#PersonalityGrid">
+            <Setter Property="Rows" Value="5"/>
+            <Setter Property="Columns" Value="4"/>
+        </Style>
+    </UserControl.Styles>
+
+    <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto">
 
         <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="8,0">
             <TextBlock Classes="y2k" Text="PITCH" Margin="0,0,0,4"/>
@@ -24,12 +45,12 @@
             </Grid>
         </StackPanel>
 
-        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+        <StackPanel x:Name="PersonalityPanel" VerticalAlignment="Center">
             <TextBlock Classes="y2k" Text="PERSONALITY" Margin="0,0,0,4"/>
             <ItemsControl ItemsSource="{Binding Personalities}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <UniformGrid Rows="4" Columns="5"/>
+                        <UniformGrid x:Name="PersonalityGrid"/>
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>

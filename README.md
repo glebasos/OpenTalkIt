@@ -20,7 +20,7 @@ Talk It! was a Windows speech synthesis application from the 1990s powered by th
 
 | Requirement | Detail |
 |---|---|
-| OS | Windows x64, macOS arm64/x64, Linux x64 |
+| OS | Windows x64, macOS arm64/x64, Linux x64, Android 6.0+ (arm64, x86_64 emulators) |
 | .NET | Release zips are self-contained; source builds use .NET 10 |
 | Native build | CMake and a C compiler; extracted speech data lives in the sibling `TalkIt_OSS` repo |
 | Linux playback | `paplay` (pulseaudio-utils) or `aplay` (alsa-utils); export works without them |
@@ -52,6 +52,26 @@ The original Windows backend is an optional fallback: build with
 ```
 dotnet run --project OpenTalkIt/OpenTalkIt.csproj
 ```
+
+### Android
+
+No Android Studio and no NDK. `dist/setup-android.sh` installs a private
+toolchain in `~/.cache/opentalkit-android` (a .NET 10 SDK with the android
+workload, OpenJDK 17, and only the Android SDK platform/build tools); delete
+that folder to uninstall. Then:
+
+```
+dist/build-android.sh     # -> dist/zips/OpenTalkIt-android.apk
+adb install -r dist/zips/OpenTalkIt-android.apk
+```
+
+`libtispeech.so` is cross-compiled with zig: it needs nothing beyond plain libc
+calls, whose ABI musl and Android's bionic share, so zig's musl target links it
+against bionic's `libc.so` directly. The same project builds the APK
+(`-p:OpenTalkItAndroid=true -f net10.0-android`); `Platforms/Android` holds the
+activity and an `AudioTrack` player. Below 600 px wide the UI switches to a
+portrait layout. The APK is signed with the local debug key, which is fine for
+sideloading.
 
 ## Project Structure
 

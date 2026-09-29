@@ -9,7 +9,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        DataContext = new MainWindowViewModel(new MainWindowExportService(this));
+        DataContext = new MainWindowViewModel(new TopLevelExportService(() => this));
         Closed += (_, _) => (DataContext as MainWindowViewModel)?.Dispose();
     }
 }

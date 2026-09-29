@@ -153,8 +153,7 @@ public partial class TalkControlViewModel : ViewModelBase, IDisposable
                 await recorder.StopAsync();
                 if (StatusMessage is not null) return;
             }
-            var folder = Path.GetDirectoryName(path);
-            if (!string.IsNullOrEmpty(folder)) _exportService.RememberFolder(folder);
+            await _exportService.CompleteAsync(path);
         }
         catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
         catch (Exception ex) { StatusMessage = ex.Message; }
