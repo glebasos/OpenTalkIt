@@ -142,11 +142,14 @@
               SkipUnchangedFiles="true" />
     </Target>
 
-    <!-- Same DLL copy for publish: put them next to TiSpeech.Host.exe in the
-         published x86\ folder. Without this the engine silently fails to load
-         TIBASE32.DLL on end-user machines. Windows/x86-only. -->
+    <!-- Same DLL copy for publish, next to TiSpeech.Host.exe in x86\. Opt-in
+         (-p:BundleSoftVoiceDlls=true) for private builds only: the DLLs belong
+         to SoftVoice, Inc. and must not be redistributed, so release zips leave
+         x86\ for users to fill from their own TalkIt install. The native
+         engine finds them there too (TiSpeechNative.DllSearchDirectories).
+         Windows/x86-only. -->
     <Target Name="CopyNativeTiDllsToPublish" AfterTargets="PublishTiSpeechHostSelfContained"
-            Condition="'$(_TargetsWindows)' == 'true' AND '@(_NativeTiDlls)' != ''">
+            Condition="'$(_TargetsWindows)' == 'true' AND '@(_NativeTiDlls)' != '' AND '$(BundleSoftVoiceDlls)' == 'true'">
         <Copy SourceFiles="@(_NativeTiDlls)"
               DestinationFolder="$(PublishDir)x86\"
               SkipUnchangedFiles="true" />

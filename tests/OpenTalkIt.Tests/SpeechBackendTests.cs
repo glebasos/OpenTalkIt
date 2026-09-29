@@ -174,7 +174,9 @@ public class SpeechBackendTests
         Assert.False(started);                 // nothing ever started speaking
         Assert.True(completed);                // but an awaiting caller is released
         Assert.False(string.IsNullOrWhiteSpace(raised));
-        Assert.Contains("Open", raised!, StringComparison.Ordinal);
+        // Without synthesis data the reason is the missing DLLs, not the call order.
+        Assert.Contains(TiSpeechNative.Capabilities.HasFlag(TiEngineCapabilities.Synthesis) ? "Open" : "TIBASE32",
+                        raised!, StringComparison.Ordinal);
         Assert.False(backend.IsSpeaking);
     }
 

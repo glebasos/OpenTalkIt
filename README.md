@@ -40,8 +40,21 @@ On Windows, functionality is unchanged from before this work started.
 
 ## Getting Started
 
+### Prebuilt zips
+
+The portable native engine now includes extracted English and Spanish speech
+data from the sibling `TalkIt_OSS/data` directory. Builds from this source no
+longer need original DLLs or Python for native synthesis and phoneme conversion.
+Older release archives may still require the original DLLs.
+
+The separate original Windows playback backend still uses `TiSpeech.Host` and
+the original DLLs in the app's `x86` folder.
+
+### From source
+
 1. Clone the repo
-2. Copy `TIBASE32.DLL`, `TIENG32.DLL` (and optionally `TISPAN32.DLL`) into `OpenTalkIt/DLLs/`
+2. Check out `TalkIt_OSS` alongside `TiSpeech` and install CMake and a C compiler.
+   Original Windows playback additionally uses the DLLs in `OpenTalkIt/DLLs/`.
 3. Build and run:
 
 ```
@@ -50,11 +63,11 @@ dotnet run --project OpenTalkIt/OpenTalkIt.csproj
 
 ## Project Structure
 
-The solution spans four sibling repositories:
+The solution spans five sibling repositories:
 
 ```
-TiSpeech/              Engine contracts, P/Invoke bindings, and portable C reconstruction
-  native/              Reconstructed rules, DSP, and differential-verification tools
+TiSpeech/              Engine contracts and P/Invoke bindings
+TalkIt_OSS/            Portable native engine, extracted speech data and verification tools
 TiSpeech.Client/       Named-pipe client that talks to TiSpeech.Host
 TiSpeech.Host/         32-bit out-of-process host that loads TIBASE32.DLL
 OpenTalkIt/            Avalonia UI application (this repo)
