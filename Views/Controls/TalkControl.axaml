@@ -3,7 +3,6 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:OpenTalkIt.ViewModels"
-             xmlns:controls="clr-namespace:OpenTalkIt.Views.Controls"
              mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="260"
              x:Class="OpenTalkIt.Views.Controls.TalkControl"
              x:DataType="vm:TalkControlViewModel">
@@ -49,24 +48,7 @@
                     Margin="0,8,0,0"
                     Command="{Binding ExportCommand}"
                     ToolTip.Tip="{Binding ExportUnavailableReason}"/>
-            <!-- Letter-to-sound runs in the portable native reconstruction, so
-                 this one works on macOS and Linux as well as Windows. It is
-                 gated on the native library's own capability bits, not on the
-                 OS, and never on whether speech works. -->
-            <Button Classes="stop"
-                    Content="Phonemes"
-                    HorizontalAlignment="Stretch"
-                    Margin="0,8,0,0"
-                    IsVisible="{Binding HasPhonemeFeature}"
-                    Command="{Binding PhonemeVM.ShowPhonemesCommand}"
-                    ToolTip.Tip="{Binding PhonemeVM.UnavailableReason}"/>
         </StackPanel>
-
-        <!-- No IsVisible gate needed: with no phoneme VM the DataContext is
-             null, every panel inside stays collapsed and the row takes no
-             space. -->
-        <controls:PhonemeControl Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
-                                 DataContext="{Binding PhonemeVM}"/>
 
         <TextBlock Grid.Row="5" Grid.ColumnSpan="2" Margin="4,8,4,0"
                    Classes="y2k" TextWrapping="Wrap"
