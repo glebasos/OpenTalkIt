@@ -177,4 +177,70 @@ public class NativePlaybackTests
         }
         finally { dir.Delete(true); }
     }
+
+    [Fact]
+    public async Task SpeechEventsArriveInOrderAndStopWithTheUtterance()
+    {
+        var requested = TiSpeechEventMask.None;
+        var events = new[]
+        {
+            new TiSpeechEvent(TiSpeechEventKind.Word, 0, 0, 0),
+            new TiSpeechEvent(TiSpeechEventKind.Mouth, 7, 110, 10),
+            new TiSpeechEvent(TiSpeechEventKind.Word, 6, 220, 20),
+        };
+        var synth = new EventSynth(events, mask => requested = mask);
+        var player = new Player();
+        using var backend = new NativeTiSpeechBackend(player, synth);
+        Assert.True(backend.Open());
+        var seen = new ConcurrentQueue<TiSpeechEvent>();
+        var third = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var completed = false;
+        backend.SpeakCompleted += (_, _) => completed = true;
+        backend.SpeechEvent += (_, ev) =>
+        {
+            Assert.False(completed);
+            seen.Enqueue(ev);
+            if (seen.Count == 3) third.TrySetResult();
+        };
+        backend.Speak("hello world");
+        await third.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.Equal(TiSpeechEventMask.Words | TiSpeechEventMask.Mouth, requested);
+        Assert.Equal(events, seen);
+        player.Finish.TrySetResult();
+    }
+
+    [Fact]
+    public async Task PausedPlaybackHoldsSpeechEvents()
+    {
+        var events = new[] { new TiSpeechEvent(TiSpeechEventKind.Word, 3, 2205, 200) }; // 0.2 s in
+        var player = new Player();
+        using var backend = new NativeTiSpeechBackend(player, new EventSynth(events, _ => { }));
+        Assert.True(backend.Open());
+        var raised = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        backend.SpeechEvent += (_, _) => raised.TrySetResult();
+        backend.Speak("abc def");
+        await player.Started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        backend.Pause();
+        await Task.Delay(400);
+        Assert.False(raised.Task.IsCompleted);
+        backend.Resume();
+        await raised.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        player.Finish.TrySetResult();
+    }
+
+    private sealed class EventSynth(TiSpeechEvent[] events, Action<TiSpeechEventMask> requested) : INativePcmSynthesizer
+    {
+        public TiEngineCapabilities Capabilities => TiEngineCapabilities.Synthesis | TiEngineCapabilities.TextToPhonemes;
+        public TiLanguageFlags Languages => TiLanguageFlags.English;
+        public TiLanguageFlags SynthesisLanguages => TiLanguageFlags.English;
+        public string? UnavailableReason => null;
+        public TiSynthesisResult Render(TiLanguage language, string text, TiVoiceOptions options, TiUserDictionary? dictionary) =>
+            throw new InvalidOperationException("the event-aware overload must be used");
+        public TiSynthesisResult Render(TiLanguage language, string text, TiVoiceOptions options, TiUserDictionary? dictionary,
+            TiSpeechEventMask mask)
+        {
+            requested(mask);
+            return new(TiStatus.Ok, new byte[4410], 11025) { Events = events };
+        }
+    }
 }

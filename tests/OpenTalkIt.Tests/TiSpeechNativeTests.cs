@@ -1,3 +1,4 @@
+using System.Linq;
 using System;
 using System.IO;
 using TiSpeech;
@@ -109,6 +110,26 @@ public class TiSpeechNativeTests
             Assert.Equal(0, result.SampleRate);
             Assert.Contains(result.Status, new[] { TiStatus.NotImplemented, TiStatus.LibraryUnavailable });
         }
+    }
+
+    [Theory]
+    [InlineData(TiLanguage.English, "Hello world, how are you?", new[] { 0, 6, 13, 17, 21 })]
+    [InlineData(TiLanguage.Spanish, "Hola mundo, ¿cómo estás?", new[] { 0, 5, 13, 18 })]
+    public void SynthesizeText_WordEventsPointAtTheWordsAndLeaveTheAudioAlone(TiLanguage language, string text,
+        int[] offsets)
+    {
+        if ((TiSpeechNative.SynthesisLanguages & (TiLanguageFlags)(uint)language) == 0) return;
+        var plain = TiSpeechNative.SynthesizeText(language, text);
+        var withEvents = TiSpeechNative.SynthesizeText(language, text, null, null,
+            TiSpeechEventMask.Words | TiSpeechEventMask.Mouth);
+        Assert.True(withEvents.IsSuccess, withEvents.Message);
+        Assert.Equal(plain.Samples, withEvents.Samples);
+        Assert.Empty(plain.Events);
+        var words = withEvents.Events.Where(e => e.Kind == TiSpeechEventKind.Word).Select(e => e.Value);
+        Assert.Equal(offsets, words);
+        Assert.Contains(withEvents.Events, e => e.Kind == TiSpeechEventKind.Mouth && e.Value is >= 1 and <= 10);
+        Assert.Equal(withEvents.Events.OrderBy(e => e.Sample), withEvents.Events);
+        Assert.All(withEvents.Events, e => Assert.InRange(e.Sample, 0, withEvents.Samples!.Length - 1));
     }
 
     [Fact]
