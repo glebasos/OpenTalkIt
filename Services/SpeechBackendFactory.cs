@@ -25,20 +25,8 @@ public sealed record SpeechBackendSelection(
 /// <summary>
 /// Composition root for the speech side of the app.
 ///
-/// OpenTalkIt can talk to two backends:
-///   * <c>TiSpeechClient</c> — the out-of-process 32-bit SoftVoice host. Real
-///     speech, Windows only, because it runs a PE binary against the original
-///     TIBASE32.DLL.
-///   * <see cref="NativeTiSpeechBackend"/> — the from-scratch portable
-///     reconstruction. Converts text to phonemes on macOS/Linux/Windows and,
-///     when built with TIBASE32 + TIENG32 data, synthesises English audio
-///     sample-exact with the original and plays it via the system player.
-///
-/// This class does not ask what operating system it is on. It asks each
-/// candidate to open and takes the first one that says yes, which is the same
-/// question the UI ultimately cares about. Each backend keeps its own platform
-/// knowledge (TiSpeechClient refuses to launch a PE binary on Unix without
-/// spawning anything), so nothing here has to guess.
+/// Uses the portable engine and bundled English/Spanish data on every platform.
+/// The original Windows host remains a compatibility fallback when installed.
 /// </summary>
 public static class SpeechBackendFactory
 {
@@ -49,11 +37,11 @@ public static class SpeechBackendFactory
     /// </summary>
     public static SpeechBackendSelection Create(TiLanguageFlags languages)
     {
-        var native = new NativeTiSpeechBackend();
+        var native = new NativeTiSpeechBackend(OperatingSystem.IsWindows()
+            ? new WindowsPcmPlayer() : new SystemPcmPlayer());
 
-        // Order matters only for which failure message reads first. The pipe
-        // client is the one that can actually speak, so it goes first.
-        ITiSpeechBackend[] candidates = [new TiSpeechClient(), native];
+        // Prefer the portable engine; it needs neither the original DLLs nor an x86 host.
+        ITiSpeechBackend[] candidates = [native, new TiSpeechClient()];
 
         var failures = new List<string>();
         foreach (var candidate in candidates)

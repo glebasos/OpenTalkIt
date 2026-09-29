@@ -13,27 +13,21 @@ public partial class MainWindowViewModel : ViewModelBase, IDisposable
     public TalkControlViewModel TalkVM { get; }
 
     /// <summary>
-    /// The speech backend that answered — the 32-bit SoftVoice host on Windows,
-    /// or the portable native reconstruction elsewhere. Chosen by
-    /// <see cref="SpeechBackendFactory"/>, which asks each candidate to open
-    /// rather than inspecting the operating system.
+    /// Portable speech engine with bundled data and platform audio playback.
+    /// The original Windows host is an optional compatibility fallback.
     /// </summary>
     public ITiSpeechBackend Engine { get; }
 
     /// <summary>
     /// Letter-to-sound provider, always the native reconstruction. Independent
     /// of <see cref="Engine"/> on purpose: converting text to phonemes and
-    /// synthesising audio are separate stages with separate availability, and
-    /// today exactly one of them works.
+    /// synthesising audio have separate availability (preview needs no audio device).
     /// </summary>
     public ITiPhonemeProvider PhonemeProvider { get; }
 
     /// <summary>
     /// Whether the speech backend came up and will actually produce the original
-    /// engine's audio. False on macOS/Linux today: the native reconstruction's
-    /// phoneme-to-audio stage is not written yet, and no system voice is
-    /// substituted for it. The UI reflects this rather than presenting
-    /// Talk/Export as if they work; see
+    /// engine's audio. The UI shows any initialization failure through
     /// <see cref="TalkControlViewModel.EngineUnavailableReason"/>.
     /// </summary>
     public bool EngineAvailable { get; }

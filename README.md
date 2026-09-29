@@ -2,7 +2,7 @@
 
 An open-source reimplementation of the **Microsoft Talk It!** frontend, built with Avalonia UI and .NET 10.
 
-Talk It! was a Windows speech synthesis application from the 1990s powered by the SoftVoice engine (`TIBASE32.DLL`). OpenTalkIt recreates its UI and behaviour as a modern cross-architecture desktop app, wrapping the original 32-bit DLL through the companion **TiSpeech** library.
+Talk It! was a Windows speech synthesis application from the 1990s powered by the SoftVoice engine (`TIBASE32.DLL`). OpenTalkIt recreates its UI and behaviour as a modern cross-architecture desktop app, using the portable **TalkIt_OSS** speech engine through the companion **TiSpeech** library.
 
 ![OpenTalkIt UI](ui.png)
 
@@ -14,29 +14,21 @@ Talk It! was a Windows speech synthesis application from the 1990s powered by th
 - Language switching: English / Spanish (German supported by the engine)
 - Pitch and speed adjustable per personality
 - Async speech with Stop support
-- WAV export via WASAPI loopback capture
+- Direct WAV export from the synthesized audio
 
 ## Requirements
 
 | Requirement | Detail |
 |---|---|
-| OS | The UI (this project) builds and runs on Windows, macOS, and Linux. Speech playback and WAV export currently require **Windows** — see "Cross-Platform Status" below. |
-| Architecture | This project itself is AnyCPU/net10.0. On Windows, speech still depends on `TIBASE32.DLL`, a 32-bit native DLL loaded by a separate x86 host process (`TiSpeech.Host`). |
-| .NET | .NET 10 |
-| Original DLLs | Windows playback: `TIBASE32.DLL`, `TIENG32.DLL`, optionally `TISPAN32.DLL`. Native rule tables also use the language DLLs as **build-time input**; they are not executed on macOS/Linux. |
+| OS | Windows x64, macOS arm64/x64, Linux x64 |
+| .NET | Release zips are self-contained; source builds use .NET 10 |
+| Native build | CMake and a C compiler; extracted speech data lives in the sibling `TalkIt_OSS` repo |
+| Linux playback | `paplay` (pulseaudio-utils) or `aplay` (alsa-utils); export works without them |
 
-The native DLLs are **not** included. You need an original Talk It! installation.
-
-### Cross-Platform Status (work in progress)
-
-This project is being ported off Windows-only APIs. Current state:
-
-- **UI**: builds and runs on macOS/Linux (plain `net10.0`, no Windows-only APIs, Avalonia's `StorageProvider` for file dialogs).
-- **Native phoneme preview**: the Phonemes button runs the reconstructed letter-to-sound rules on macOS, Linux, and Windows when `libtispeech` and language tables are built. This is rule conversion, not full text normalisation or speech playback.
-- **Speech engine**: playback is still Windows-only. `TiSpeech.Host` wraps the original 32-bit `TIBASE32.DLL`. A portable C reconstruction of SoftVoice is under active development, with no Wine/emulation shim and no alternative/system voice substitute. On macOS/Linux, Talk and Export remain disabled until the native phoneme-to-frame generator and playback path exist.
-- **WAV export**: depends on speech playback and uses Windows-only WASAPI loopback capture (via NAudio). There is no cross-platform playback/export path yet.
-
-On Windows, functionality is unchanged from before this work started.
+The Avalonia app uses the portable native engine for English/Spanish speech,
+phoneme preview, personality and voice settings, and direct WAV export on every
+platform. Windows playback uses NAudio; macOS/Linux use the system audio player.
+Original Talk It! DLLs and an x86 host are not required.
 
 ## Getting Started
 
@@ -47,14 +39,14 @@ data from the sibling `TalkIt_OSS/data` directory. Builds from this source no
 longer need original DLLs or Python for native synthesis and phoneme conversion.
 Older release archives may still require the original DLLs.
 
-The separate original Windows playback backend still uses `TiSpeech.Host` and
-the original DLLs in the app's `x86` folder.
+The original Windows backend is an optional fallback: build with
+`-p:IncludeLegacySpeechHost=true` and provide its DLLs in the app's `x86` folder.
 
 ### From source
 
 1. Clone the repo
 2. Check out `TalkIt_OSS` alongside `TiSpeech` and install CMake and a C compiler.
-   Original Windows playback additionally uses the DLLs in `OpenTalkIt/DLLs/`.
+   No original DLLs or Python are needed.
 3. Build and run:
 
 ```
@@ -92,9 +84,11 @@ OpenTalkIt/            Avalonia UI application (this repo)
 
 ## TiSpeech Library
 
-TiSpeech is a standalone .NET 10 library that wraps `TIBASE32.DLL` via P/Invoke. Because `TIBASE32.DLL` is 32-bit, the engine runs in a dedicated **TiSpeech.Host** process (x86 self-contained executable). The main app communicates with it through **TiSpeech.Client** over a named pipe. This lets the 64-bit Avalonia host and the 32-bit engine coexist without forcing the whole app to run as x86.
-
-TiSpeech.Host handles engine lifecycle, speech synthesis, voice parameter setting, and async completion notification through a hidden Win32 message-only window (no Windows Forms dependency).
+TiSpeech binds the portable `libtispeech` library built by `TalkIt_OSS`. The app
+selects `NativeTiSpeechBackend` first and plays its PCM through a platform audio
+player. WAV export writes that PCM directly without recording or muting system
+audio. The original Windows engine, exposed by `TiSpeechClient` and the x86
+`TiSpeech.Host`, remains an opt-in compatibility fallback.
 
 See [`TiSpeech/TiSpeech.md`](https://github.com/glebasos/TiSpeech/blob/master/TiSpeech.md) for the full API reference.
 
@@ -123,4 +117,6 @@ Notable findings:
 
 ## License
 
-This project contains no original Talk It! code or assets. The native DLLs (`TIBASE32.DLL` etc.) remain the property of their respective owners and are not redistributed here.
+The original DLLs are not shipped. The portable engine includes extracted
+SoftVoice speech data; see `TalkIt_OSS/data/README.md` for its provenance and
+regeneration workflow.
