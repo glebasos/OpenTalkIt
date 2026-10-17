@@ -7,7 +7,7 @@ using TiSpeech;
 
 namespace OpenTalkIt.Services;
 
-/// <summary>Plays the portable engine's unsigned 8-bit PCM through Windows audio.</summary>
+/// <summary>Plays the portable engine's unsigned 8-bit PCM through Windows audio as signed 16-bit.</summary>
 public sealed class WindowsPcmPlayer : IPcmPlayer
 {
     private readonly object _sync = new();
@@ -25,8 +25,8 @@ public sealed class WindowsPcmPlayer : IPcmPlayer
     public async Task PlayAsync(byte[] samples, int sampleRate, Action started, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        using var stream = new MemoryStream(samples, writable: false);
-        using var source = new RawSourceWaveStream(stream, new WaveFormat(sampleRate, 8, 1));
+        using var stream = new MemoryStream(ToSigned16(samples), writable: false);
+        using var source = new RawSourceWaveStream(stream, new WaveFormat(sampleRate, 16, 1));
         using var output = _createOutput();
         var stopped = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         void OnStopped(object? sender, StoppedEventArgs args)
@@ -72,6 +72,21 @@ public sealed class WindowsPcmPlayer : IPcmPlayer
             }
             output.PlaybackStopped -= OnStopped;
         }
+    }
+
+    // WaveOut pads the final buffer with zero bytes, which in unsigned 8-bit PCM is full
+    // negative amplitude, so playback ended with a burst of noise. Signed 16-bit makes the
+    // padding silent.
+    internal static byte[] ToSigned16(byte[] samples)
+    {
+        var pcm = new byte[samples.Length * 2];
+        for (var i = 0; i < samples.Length; i++)
+        {
+            var value = (short)((samples[i] - 128) << 8);
+            pcm[2 * i] = (byte)value;
+            pcm[2 * i + 1] = (byte)(value >> 8);
+        }
+        return pcm;
     }
 
     public void Pause()

@@ -33,7 +33,11 @@ public partial class App : Application
         else if (ApplicationLifetime is ISingleViewApplicationLifetime singleView)
         {
             var view = new MainView();
+#if BROWSER
+            view.DataContext = new MainWindowViewModel(new Browser.BrowserExportService());
+#else
             view.DataContext = new MainWindowViewModel(new TopLevelExportService(() => TopLevel.GetTopLevel(view)));
+#endif
             singleView.MainView = view;
         }
 

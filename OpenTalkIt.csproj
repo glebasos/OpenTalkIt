@@ -25,13 +25,23 @@
              the TiSpeech.Host/native-DLL path stays Windows/x86-only and is
              gated below via _TargetsWindows rather than via the TFM. -->
         <TargetFramework>net10.0</TargetFramework>
+        <!-- dist/build-legacy-mac.sh: .NET 8's macOS runtime still loads on 10.15/11; .NET 10's needs 12. -->
+        <TargetFramework Condition="'$(OpenTalkItNet8)' == 'true'">net8.0</TargetFramework>
         <!-- Android is opt-in (dist/build-android.sh) so desktop builds and
              the tests never need the android workload. -->
         <TargetFramework Condition="'$(OpenTalkItAndroid)' == 'true'">net10.0-android</TargetFramework>
+        <!-- WebAssembly is opt-in too (dist/build-web.sh, needs the wasm-tools workload). -->
+        <TargetFramework Condition="'$(OpenTalkItBrowser)' == 'true'">net10.0-browser</TargetFramework>
         <Nullable>enable</Nullable>
         <ApplicationManifest Condition="'$(_TargetsWindows)' == 'true'">app.manifest</ApplicationManifest>
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
         <ApplicationIcon>Assets\opentalkit.ico</ApplicationIcon>
+    </PropertyGroup>
+
+    <!-- NO_SHADER=1 dist/publish.sh: desktop build without the animated cloud
+         shader, for machines whose GPU/driver can't run it smoothly. -->
+    <PropertyGroup Condition="'$(OpenTalkItNoShader)' == 'true'">
+        <DefineConstants>$(DefineConstants);NO_SHADER</DefineConstants>
     </PropertyGroup>
 
     <!-- Release builds should not carry SkiaSharp/HarfBuzz native PDBs or our
@@ -77,6 +87,40 @@
         <AndroidNativeLibrary Include="$(OpenTalkItAndroidNativeDir)\android-arm64\libtispeech.so" Abi="arm64-v8a"/>
         <AndroidNativeLibrary Include="$(OpenTalkItAndroidNativeDir)\android-x64\libtispeech.so" Abi="x86_64"/>
     </ItemGroup>
+    <!-- ===================================================================
+         Browser head (itch.io and any static host). Platforms/Browser holds
+         the entry point, Web Audio playback and download-based export;
+         wwwroot/ is the page. libtispeech is linked into dotnet.native.wasm
+         as a static archive from dist/build-native.sh browser-wasm.
+         =================================================================== -->
+    <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-browser'">
+        <OutputType>Exe</OutputType>
+        <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <WasmBuildNative>true</WasmBuildNative>
+        <!-- itch.io and plain static hosts don't negotiate .br/.gz. -->
+        <CompressionEnabled>false</CompressionEnabled>
+        <InvariantGlobalization>true</InvariantGlobalization>
+        <WasmEmitSymbolMap>false</WasmEmitSymbolMap>
+        <DefaultItemExcludes>$(DefaultItemExcludes);tests\**</DefaultItemExcludes>
+        <OpenTalkItBrowserNativeDir Condition="'$(OpenTalkItBrowserNativeDir)' == ''">$(MSBuildThisFileDirectory)..\dist\native\browser-wasm</OpenTalkItBrowserNativeDir>
+    </PropertyGroup>
+    <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-browser'">
+        <Compile Remove="Program.cs;NativeLibraryDirectory.cs"/>
+        <NativeFileReference Include="$(OpenTalkItBrowserNativeDir)\tispeech.a"/>
+    </ItemGroup>
+    <ItemGroup Condition="'$(TargetFramework)' != 'net10.0-browser'">
+        <Compile Remove="Platforms\Browser\**"/>
+        <None Remove="Platforms\Browser\**"/>
+        <Content Remove="wwwroot\**"/>
+        <None Remove="wwwroot\**"/>
+    </ItemGroup>
+    <Target Name="CheckBrowserNativeLibrary" BeforeTargets="Build"
+            Condition="'$(TargetFramework)' == 'net10.0-browser'">
+        <Error Condition="!Exists('$(OpenTalkItBrowserNativeDir)\tispeech.a')"
+               Text="Missing $(OpenTalkItBrowserNativeDir)\tispeech.a. Run dist/build-native.sh browser-wasm first (dist/build-web.sh does)." />
+    </Target>
+
     <ItemGroup Condition="'$(TargetFramework)' != 'net10.0-android'">
         <Compile Remove="Platforms\Android\**"/>
         <None Remove="Platforms\Android\**"/>
@@ -110,7 +154,8 @@
     <ItemGroup>
         <!-- 12.0.1 fixes the macOS save-picker callback crash (AvaloniaUI/Avalonia#21104). -->
         <PackageReference Include="Avalonia" Version="12.0.1"/>
-        <PackageReference Include="Avalonia.Desktop" Version="12.0.1" Condition="'$(TargetFramework)' != 'net10.0-android'"/>
+        <PackageReference Include="Avalonia.Desktop" Version="12.0.1" Condition="'$(TargetFramework)' != 'net10.0-android' AND '$(TargetFramework)' != 'net10.0-browser'"/>
+        <PackageReference Include="Avalonia.Browser" Version="12.0.1" Condition="'$(TargetFramework)' == 'net10.0-browser'"/>
         <PackageReference Include="Avalonia.Android" Version="12.0.1" Condition="'$(TargetFramework)' == 'net10.0-android'"/>
         <PackageReference Include="Avalonia.Themes.Fluent" Version="12.0.1"/>
         <PackageReference Include="Avalonia.Fonts.Inter" Version="12.0.1"/>
@@ -125,8 +170,11 @@
              Tmds.DBus.Protocol 0.90.3 — vulnerable per GHSA-xrw6-gwf8-vvr9
              (fixed in 0.92.0+). Pin it directly so NuGet resolves a patched
              version regardless of what Avalonia's own dependency range asks
-             for. -->
-        <PackageReference Include="Tmds.DBus.Protocol" Version="0.95.1" Condition="'$(TargetFramework)' != 'net10.0-android'"/>
+             for. Do NOT go past 0.92.x: 0.95 removed Tmds.DBus.Protocol.Connection,
+             which Avalonia.FreeDesktop 12.0.1 still uses, and the app dies at
+             startup on Linux with a TypeLoadException. Only bump this together
+             with an Avalonia release that depends on the newer version. -->
+        <PackageReference Include="Tmds.DBus.Protocol" Version="0.92.0" Condition="'$(TargetFramework)' != 'net10.0-android' AND '$(TargetFramework)' != 'net10.0-browser'"/>
     </ItemGroup>
 
     <ItemGroup>

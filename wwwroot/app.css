@@ -1,0 +1,8 @@
+html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #1e1e1e; }
+#out { width: 100%; height: 100%; }
+.splash {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 12px;
+    font: 15px system-ui, sans-serif; color: #ccc;
+}
+.splash.error { color: #f88; padding: 16px; text-align: center; }

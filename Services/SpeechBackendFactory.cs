@@ -42,7 +42,7 @@ public static class SpeechBackendFactory
         // Prefer the portable engine; it needs neither the original DLLs nor an x86 host.
         // The x86 host fallback exists only on Windows; elsewhere it only adds a
         // second, irrelevant failure message.
-        ITiSpeechBackend[] candidates = OperatingSystem.IsAndroid() ? [native] : [native, new TiSpeechClient()];
+        ITiSpeechBackend[] candidates = OperatingSystem.IsAndroid() || OperatingSystem.IsBrowser() ? [native] : [native, new TiSpeechClient()];
 
         var failures = new List<string>();
         foreach (var candidate in candidates)
@@ -105,6 +105,8 @@ public static class SpeechBackendFactory
     {
 #if ANDROID
         return new Android.AndroidPcmPlayer();
+#elif BROWSER
+        return new Browser.BrowserPcmPlayer();
 #else
         return OperatingSystem.IsWindows() ? new WindowsPcmPlayer() : new SystemPcmPlayer();
 #endif

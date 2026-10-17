@@ -13,7 +13,8 @@
         <vm:MainWindowViewModel />
     </Design.DataContext>
 
-    <!-- Phone layout: MainView.axaml.cs adds "narrow" below 600 px, which the
+    <!-- Phone layout: MainView.axaml.cs adds "narrow" below 600 px wide (and
+         "short" below 600 px tall, i.e. a phone in landscape), which the
          controls below also key on. Adaptive properties live in styles, not
          attributes, because a local value would win over the narrow setter. -->
     <UserControl.Styles>
@@ -23,6 +24,9 @@
         <Style Selector=".narrow Border#Frame"><Setter Property="Margin" Value="4"/></Style>
         <Style Selector=".narrow Border#InnerFrame"><Setter Property="Margin" Value="2"/></Style>
         <Style Selector=".narrow Grid#Panels"><Setter Property="Margin" Value="6"/></Style>
+        <Style Selector=".short Border#Frame"><Setter Property="Margin" Value="4"/></Style>
+        <Style Selector=".short Border#InnerFrame"><Setter Property="Margin" Value="2"/></Style>
+        <Style Selector=".short Grid#Panels"><Setter Property="Margin" Value="6"/></Style>
     </UserControl.Styles>
 
     <Grid x:Name="Root">
@@ -41,6 +45,13 @@
                     BorderThickness="2"
                     BorderBrush="#2A134E"
                     Background="#331956">
+                <!-- Scrolls when the panels are taller than the screen: a phone in
+                     portrait, any phone in landscape, or while the on-screen
+                     keyboard is up. On a tall window the content is stretched to
+                     the viewport, so the talk row still fills the spare height. -->
+                <ScrollViewer x:Name="Scroller"
+                              HorizontalScrollBarVisibility="Disabled"
+                              VerticalScrollBarVisibility="Auto">
                 <Grid x:Name="Panels" RowDefinitions="Auto,Auto,*">
 
                     <Border Grid.Row="0"
@@ -73,6 +84,7 @@
                     </Border>
 
                 </Grid>
+                </ScrollViewer>
             </Border>
         </Border>
     </Grid>

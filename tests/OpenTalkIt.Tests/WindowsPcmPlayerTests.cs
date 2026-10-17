@@ -43,11 +43,12 @@ public class WindowsPcmPlayerTests
         Assert.True(started);
         Assert.False(task.IsCompleted);
         Assert.Equal(11025, output.Source!.WaveFormat.SampleRate);
-        Assert.Equal(8, output.Source.WaveFormat.BitsPerSample);
+        Assert.Equal(16, output.Source.WaveFormat.BitsPerSample);
         Assert.Equal(1, output.Source.WaveFormat.Channels);
-        var actual = new byte[3];
-        Assert.Equal(3, output.Source.Read(actual, 0, actual.Length));
-        Assert.Equal(pcm, actual);
+        var actual = new byte[6];
+        Assert.Equal(6, output.Source.Read(actual, 0, actual.Length));
+        // Unsigned 8-bit midpoint 128 becomes signed 16-bit zero, so WaveOut's zero padding is silence.
+        Assert.Equal(new byte[] { 0x00, 0x80, 0x00, 0x00, 0x00, 0x7F }, actual);
         player.Pause();
         Assert.Equal(PlaybackState.Paused, output.PlaybackState);
         player.Resume();
